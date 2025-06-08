@@ -33,6 +33,9 @@ def harvest_helm_stats(root: str | Path = "benchmark_output/runs") -> pd.DataFra
         scenario_class = run_spec.get("scenario_spec", {}).get("class_name", "unknown")
         scenario_args = run_spec.get("scenario_spec", {}).get("args", {})
         
+        # Get the suite name from the path structure: benchmark_output/runs/SUITE_NAME/scenario/stats.json
+        suite_name = stats_path.parent.parent.name
+        
         for stat_entry in stats_list:
             # Flatten the nested name dictionary
             name_dict = stat_entry.get("name", {})
@@ -40,7 +43,7 @@ def harvest_helm_stats(root: str | Path = "benchmark_output/runs") -> pd.DataFra
             # Create row with base metadata + flattened name fields + other stat fields
             row = {
                 "model": model,
-                "run": stats_path.parent.name,
+                "run": suite_name,  # This now contains the timestamp-based suite name
                 "run_name": run_name,
                 "scenario_class": scenario_class,
             }
@@ -383,7 +386,7 @@ def merge_run_level_data(report: Dict[str, pd.DataFrame]) -> pd.DataFrame:
 
 def merge_instance_level_data(report: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
-    Merge instance-level data (instances, per_instance_stats, scenario_state) with run metadata.
+    Merge instance-level data (instances, scenario_state) with run metadata.
     
     Args:
         report: Dictionary of DataFrames from create_comprehensive_report()
@@ -391,8 +394,7 @@ def merge_instance_level_data(report: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     Returns:
         Merged DataFrame with all instance-level information
     """
-    instances_df = report["instances"].copy()
-    per_instance_stats_df = report["per_instance_stats"].copy()
+    instances_df = report["instances"].copy() 
     scenario_state_df = report["scenario_state"].copy()
     run_specs_df = report["run_specs"].copy()
     scenario_metadata_df = report["scenario_metadata"].copy()
@@ -406,14 +408,6 @@ def merge_instance_level_data(report: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         on=["run_id", "instance_id"],
         how="left",
         suffixes=("", "_inst")
-    )
-    
-    # Add per_instance_stats (merge on run_id and instance_id)
-    merged_df = merged_df.merge(
-        per_instance_stats_df,
-        on=["run_id", "instance_id"],
-        how="left",
-        suffixes=("", "_stat")
     )
     
     # Add run specifications
@@ -441,8 +435,260 @@ def merge_instance_level_data(report: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     return merged_df
 
 
+def extract_run_timestamp(run_id: str) -> Optional[datetime.datetime]:
+    """
+    Extract timestamp from run_id (assumes format like 'results-20250608_112220').
+    
+    Args:
+        run_id: The run identifier
+        
+    Returns:
+        datetime object if timestamp can be parsed, None otherwise
+    """
+    import re
+    
+    # Look for pattern like 'results-20250608_112220' or just '20250608_112220'
+    timestamp_pattern = r'(\d{8}_\d{6})'
+    match = re.search(timestamp_pattern, run_id)
+    if match:
+        timestamp_str = match.group(1)
+        try:
+            return datetime.datetime.strptime(timestamp_str, '%Y%m%d_%H%M%S')
+        except ValueError:
+            pass
+    
+    return None
 
 
+def add_temporal_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Add temporal analysis columns to a dataframe with run_id or run column.
+    
+    Args:
+        df: DataFrame with 'run_id' or 'run' column
+        
+    Returns:
+        DataFrame with added temporal columns
+    """
+    df = df.copy()
+    
+    # Handle both 'run_id' and 'run' column names
+    run_col = 'run_id' if 'run_id' in df.columns else 'run'
+    if run_col not in df.columns:
+        raise ValueError("DataFrame must have either 'run_id' or 'run' column")
+    
+    # Extract timestamps
+    df['run_timestamp'] = df[run_col].apply(extract_run_timestamp)
+    
+    # Add date components for easier filtering
+    df['run_date'] = df['run_timestamp'].dt.date
+    df['run_hour'] = df['run_timestamp'].dt.hour
+    df['run_weekday'] = df['run_timestamp'].dt.day_name()
+    
+    # Add time-based sorting
+    df = df.sort_values('run_timestamp', na_position='last')
+    
+    return df
+
+
+def get_model_dataset_combos(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Get unique model-dataset combinations with their run history.
+    
+    Args:
+        df: DataFrame with model and scenario_class columns
+        
+    Returns:
+        DataFrame with model-dataset combinations and run counts
+    """
+    df_with_time = add_temporal_columns(df)
+    
+    # Handle both 'run_id' and 'run' column names
+    run_col = 'run_id' if 'run_id' in df_with_time.columns else 'run'
+    
+    combo_summary = (df_with_time
+                    .groupby(['model', 'scenario_class'])
+                    .agg({
+                        run_col: ['count', 'nunique'],
+                        'run_timestamp': ['min', 'max'],
+                        'run_date': 'nunique'
+                    })
+                    .round(3))
+    
+    # Flatten column names
+    combo_summary.columns = ['_'.join(col).strip() for col in combo_summary.columns]
+    combo_summary = combo_summary.rename(columns={
+        f'{run_col}_count': 'total_instances',
+        f'{run_col}_nunique': 'unique_runs',
+        'run_timestamp_min': 'first_run',
+        'run_timestamp_max': 'last_run',
+        'run_date_nunique': 'unique_days'
+    })
+    
+    combo_summary = combo_summary.reset_index()
+    combo_summary['days_span'] = (combo_summary['last_run'] - combo_summary['first_run']).dt.days
+    
+    return combo_summary.sort_values(['model', 'scenario_class'])
+
+
+def track_model_dataset_over_time(df: pd.DataFrame, model: str, dataset: str, 
+                                 metric_columns: List[str] = None) -> pd.DataFrame:
+    """
+    Track a specific model-dataset combination over time.
+    
+    Args:
+        df: DataFrame with stats/performance data
+        model: Model name to filter for
+        dataset: Dataset/scenario_class name to filter for  
+        metric_columns: List of metric columns to track. If None, will find numeric columns.
+        
+    Returns:
+        DataFrame with time-series data for the model-dataset combo
+    """
+    df_with_time = add_temporal_columns(df)
+    
+    # Filter for specific model-dataset combo
+    filtered_df = df_with_time[
+        (df_with_time['model'] == model) & 
+        (df_with_time['scenario_class'] == dataset)
+    ].copy()
+    
+    if filtered_df.empty:
+        print(f"No data found for model='{model}' and dataset='{dataset}'")
+        return pd.DataFrame()
+    
+    # If no metric columns specified, find numeric columns (excluding temporal ones)
+    if metric_columns is None:
+        exclude_cols = ['run_timestamp', 'run_date', 'run_hour', 'instance_id', 'train_trial_index']
+        metric_columns = [col for col in filtered_df.select_dtypes(include=['number']).columns 
+                         if col not in exclude_cols]
+    
+    # Handle both 'run_id' and 'run' column names
+    run_col = 'run_id' if 'run_id' in filtered_df.columns else 'run'
+    
+    # Group by run to get run-level statistics
+    time_series = (filtered_df
+                  .groupby([run_col, 'run_timestamp', 'run_date'])
+                  [metric_columns]
+                  .agg(['mean', 'std', 'count'])
+                  .round(4))
+    
+    # Flatten column names
+    time_series.columns = ['_'.join(col).strip() for col in time_series.columns]
+    time_series = time_series.reset_index()
+    
+    # Sort by timestamp
+    time_series = time_series.sort_values('run_timestamp')
+    
+    # Add run sequence number
+    time_series['run_sequence'] = range(1, len(time_series) + 1)
+    
+    return time_series
+
+
+def compare_recent_runs(df: pd.DataFrame, model: str, dataset: str, 
+                       last_n_runs: int = 3, metric_columns: List[str] = None) -> Dict[str, Any]:
+    """
+    Compare performance across the most recent N runs for a model-dataset combo.
+    
+    Args:
+        df: DataFrame with stats/performance data
+        model: Model name
+        dataset: Dataset/scenario_class name
+        last_n_runs: Number of recent runs to compare
+        metric_columns: List of metrics to compare
+        
+    Returns:
+        Dictionary with comparison results
+    """
+    time_series = track_model_dataset_over_time(df, model, dataset, metric_columns)
+    
+    if time_series.empty or len(time_series) < 2:
+        return {"error": "Not enough runs to compare"}
+    
+    # Get the most recent runs
+    recent_runs = time_series.tail(last_n_runs).copy()
+    
+    # Find mean columns (performance metrics)
+    mean_cols = [col for col in recent_runs.columns if col.endswith('_mean')]
+    
+    comparison = {
+        "model": model,
+        "dataset": dataset,
+        "runs_compared": len(recent_runs),
+        "time_span": {
+            "first_run": recent_runs['run_timestamp'].min(),
+            "last_run": recent_runs['run_timestamp'].max(),
+            "days": (recent_runs['run_timestamp'].max() - recent_runs['run_timestamp'].min()).days
+        },
+        "metrics": {}
+    }
+    
+    # Calculate statistics for each metric
+    for col in mean_cols:
+        metric_name = col.replace('_mean', '')
+        values = recent_runs[col].dropna()
+        
+        if len(values) > 0:
+            comparison["metrics"][metric_name] = {
+                "latest_value": float(values.iloc[-1]),
+                "mean": float(values.mean()),
+                "std": float(values.std()) if len(values) > 1 else 0.0,
+                "min": float(values.min()),
+                "max": float(values.max()),
+                "trend": "improving" if len(values) > 1 and values.iloc[-1] > values.iloc[0] else "declining" if len(values) > 1 and values.iloc[-1] < values.iloc[0] else "stable"
+            }
+    
+    return comparison
+
+
+def get_performance_summary_by_time(df: pd.DataFrame, 
+                                   metric_columns: List[str] = None,
+                                   group_by_day: bool = True) -> pd.DataFrame:
+    """
+    Get performance summary grouped by time periods.
+    
+    Args:
+        df: DataFrame with stats data
+        metric_columns: List of metrics to summarize
+        group_by_day: If True, group by day; if False, group by individual runs
+        
+    Returns:
+        DataFrame with performance over time
+    """
+    df_with_time = add_temporal_columns(df)
+    
+    if metric_columns is None:
+        exclude_cols = ['run_timestamp', 'run_date', 'run_hour', 'instance_id', 'train_trial_index']
+        metric_columns = [col for col in df_with_time.select_dtypes(include=['number']).columns 
+                         if col not in exclude_cols]
+    
+    # Handle both 'run_id' and 'run' column names
+    run_col = 'run_id' if 'run_id' in df_with_time.columns else 'run'
+    
+    # Group by time period and model-dataset combo
+    group_cols = ['model', 'scenario_class']
+    if group_by_day:
+        group_cols.append('run_date')
+        time_col = 'run_date'
+    else:
+        group_cols.extend([run_col, 'run_timestamp'])
+        time_col = 'run_timestamp'
+    
+    summary = (df_with_time
+              .groupby(group_cols)
+              [metric_columns]
+              .agg(['mean', 'count'])
+              .round(4))
+    
+    # Flatten column names
+    summary.columns = ['_'.join(col).strip() for col in summary.columns]
+    summary = summary.reset_index()
+    
+    # Sort by time
+    summary = summary.sort_values([time_col, 'model', 'scenario_class'])
+    
+    return summary
 
 
 if __name__ == "__main__":
@@ -453,10 +699,108 @@ if __name__ == "__main__":
     for name, df in report.items():
         print(f"  {name}: {len(df)} rows, {len(df.columns)} columns")
     
-    print("\nCreating final merged dataframe with all data sources...")
-    final_df = merge_instance_level_data(report)
-    print(f"Final merged dataframe: {len(final_df)} rows, {len(final_df.columns)} columns")
-    print(f"Columns: {list(final_df.columns)}")
+    print("\n" + "="*50)
+    print("TEMPORAL ANALYSIS")
+    print("="*50)
     
-    # This dataframe contains everything: scenario_state, instances, per_instance_stats, 
-    # run_specs, and scenario_metadata all merged together
+    # Get the main stats dataframe with temporal information
+    stats_df = add_temporal_columns(report["stats"])
+    
+    print(f"\nStats DataFrame: {len(stats_df)} rows, {len(stats_df.columns)} columns")
+    print(f"Date range: {stats_df['run_date'].min()} to {stats_df['run_date'].max()}")
+    # Handle both 'run_id' and 'run' column names
+    run_col = 'run_id' if 'run_id' in stats_df.columns else 'run'
+    print(f"Unique runs: {stats_df[run_col].nunique()}")
+    
+    # Show model-dataset combinations
+    print(f"\nModel-Dataset Combinations:")
+    combos = get_model_dataset_combos(stats_df)
+    print(combos.to_string())
+    
+    # Example: Track a specific model-dataset combo over time
+    if not combos.empty:
+        # Get the first combo as an example
+        example_model = combos.iloc[0]['model']
+        example_dataset = combos.iloc[0]['scenario_class']
+        
+        print(f"\n" + "-"*50)
+        print(f"TRACKING: {example_model} on {example_dataset}")
+        print("-"*50)
+        
+        # Get time series for this combo
+        time_series = track_model_dataset_over_time(stats_df, example_model, example_dataset)
+        print(f"\nTime series data ({len(time_series)} runs):")
+        # Handle both 'run_id' and 'run' column names
+        run_col = 'run_id' if 'run_id' in time_series.columns else 'run'
+        print(time_series[[run_col, 'run_date', 'run_sequence']].to_string())
+        
+        # Compare recent runs
+        comparison = compare_recent_runs(stats_df, example_model, example_dataset, last_n_runs=3)
+        print(f"\nRecent runs comparison:")
+        if "error" not in comparison:
+            print(f"  Runs compared: {comparison['runs_compared']}")
+            print(f"  Time span: {comparison['time_span']['days']} days")
+            for metric, data in comparison['metrics'].items():
+                print(f"  {metric}: {data['latest_value']:.3f} (trend: {data['trend']})")
+    
+    print(f"\n" + "="*50)
+    print("CREATING FINAL SUMMARY DATAFRAME")
+    print("="*50)
+    
+    # Create the final clean dataframe with all key information
+    final_df = stats_df.copy()
+    
+    # Reorder columns for better readability
+    key_columns = [
+        'model', 
+        'scenario_class',
+        'run_timestamp', 
+        'run_date',
+        'run_id' if 'run_id' in final_df.columns else 'run',
+        'metric_name',
+        'split'
+    ]
+    
+    # Add all metric/stat columns
+    metric_columns = [col for col in final_df.columns 
+                     if col in ['count', 'sum', 'mean', 'min', 'max', 'std', 'variance', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99']]
+    
+    keep_metric_names = ['perplexity', 'exact_match', 'f1_score', 'bleu_4', 'rouge_l']
+    final_df = final_df[final_df.name.isin(keep_metric_names)].reset_index(drop=True)
+
+    # Add any remaining columns that might be useful
+    other_columns = [col for col in final_df.columns 
+                    if col not in key_columns + metric_columns + ['run_hour', 'run_weekday']]
+    
+    # Final column order
+    final_column_order = key_columns + metric_columns + other_columns
+    final_column_order = [col for col in final_column_order if col in final_df.columns]
+    
+    final_df = final_df[final_column_order]
+    
+    # Sort by model, scenario, and timestamp for nice ordering
+    sort_columns = ['model', 'scenario_class', 'run_timestamp', 'metric_name']
+    sort_columns = [col for col in sort_columns if col in final_df.columns]
+    final_df = final_df.sort_values(sort_columns).reset_index(drop=True)
+    
+    # Save to CSV
+    output_path = Path("benchmark_summary.csv")
+    breakpoint()
+    final_df.to_csv(output_path, index=False)
+    
+    print(f"Final summary dataframe saved to: {output_path}")
+    print(f"Shape: {final_df.shape}")
+    print(f"Columns: {list(final_df.columns)}")
+    print(f"\nFirst few rows:")
+    print(final_df.head().to_string())
+    
+    print(f"\n" + "="*50)
+    print("Ready for interactive analysis!")
+    print("="*50)
+    print("Available functions:")
+    print("- get_model_dataset_combos(stats_df)")  
+    print("- track_model_dataset_over_time(stats_df, model, dataset)")
+    print("- compare_recent_runs(stats_df, model, dataset, last_n_runs=3)")
+    print("- get_performance_summary_by_time(stats_df)")
+    
+    breakpoint()
