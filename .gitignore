@@ -192,3 +192,13 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+/site/*
+!/site/.gitkeep
+
+/results/*
+!/results/.gitkeep
+
+# Benchmark output directories
+**/benchmark_output/
+**/prod_env/

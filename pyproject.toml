@@ -1,0 +1,25 @@
+[project]
+name = "tinybench-runner"
+version = "0.1.0"
+requires-python = ">=3.9"
+description = "Daily benchmarking for LLMs"
+authors = [
+    { name = "Jacob Phillips", email = "jacob.phillips8905@gmail.com" }
+]
+dependencies = [
+    "lm-eval[api]==0.4.8",
+    "pandas",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ruff",
+  "pytest",
+]
+
+[project.scripts]
+tinybench-run = "tinybench_runner.cli:main"
+build-site = "tinybench_runner.build_site:build_site_main"
+
+[tool.setuptools.packages.find]
+exclude = ["tests*"]
