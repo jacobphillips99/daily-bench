@@ -6,9 +6,6 @@ on:
     - cron: '0 14 * * *'
   # Allow manual triggering
   workflow_dispatch:
-  # Also run on push to main for testing
-  push:
-    branches: [ main ]
 
 permissions:
   contents: read
