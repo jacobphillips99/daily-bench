@@ -198,11 +198,12 @@ cython_debug/
 
 /results/*
 !/results/.gitkeep
+!/results/benchmark_summary.csv
 
-# Benchmark output directories
 **/benchmark_output/
 **/prod_env/
 
 # Data files
 *.csv
+!results/benchmark_summary.csv
 *.parquet

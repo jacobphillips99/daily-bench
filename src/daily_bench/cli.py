@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from daily_bench.extractor import extract_results, report
+from daily_bench.extractor import extract_results, extract_results_incremental, report
 
 
 def run_helm_lite() -> None:
@@ -50,9 +50,15 @@ def run_helm_lite() -> None:
     finally:
         os.chdir(original_cwd)
 
-def run_results_extractor(results_location: Path, output_location: Path) -> None:
+def run_results_extractor(results_location: Path, output_location: Path, incremental: bool = True) -> None:
     """Run the results extractor function"""
-    data = extract_results(root=results_location, output_path=output_location)
+    if incremental:
+        data = extract_results_incremental(root=results_location, output_path=output_location)
+        print(f"Incremental extraction completed. Processed {data.get('new_runs_processed', 0)} new runs.")
+    else:
+        data = extract_results(root=results_location, output_path=output_location)
+        print("Full extraction completed.")
+    
     report(data)
     print(f"Results extracted to {output_location}")
     
@@ -87,6 +93,11 @@ def main() -> None:
         "extract",
         help="Extract results from the HELM Lite benchmark"
     )
+    extract_parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Perform full extraction instead of incremental (slower but processes all runs)"
+    )
     
     args = parser.parse_args()
     
@@ -96,7 +107,8 @@ def main() -> None:
         current_dir = Path(__file__).parent
         results_location = current_dir / "helm_lite/benchmark_output/runs"
         output_location = current_dir.parent.parent / "results/benchmark_summary.csv"
-        run_results_extractor(results_location, output_location)
+        incremental = not args.full  # Use incremental unless --full is specified
+        run_results_extractor(results_location, output_location, incremental)
     else:
         parser.print_help()
         sys.exit(1)

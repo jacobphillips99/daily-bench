@@ -61,6 +61,10 @@ def harvest_helm_stats(root: str | Path = "benchmark_output/runs") -> pd.DataFra
                     row[key] = value
             
             rows.append(row)
+
+    if len(rows) == 0:
+        raise ValueError(f"No rows found in harvest_helm_stats! Along path {root}")
+
     return (
         pd.DataFrame(rows)
         .sort_values(["model", "run"], ascending=[True, True])
@@ -690,10 +694,159 @@ def get_performance_summary_by_time(df: pd.DataFrame,
     return summary
 
 
+def extract_results_incremental(root: str | Path = "benchmark_output/runs", 
+                               output_path: str | Path = "results/benchmark_summary.csv") -> Dict[str, Any]:
+    """
+    Extract and process only NEW benchmark data, appending to existing CSV.
+    
+    Args:
+        root: Root directory containing benchmark runs
+        output_path: Path to save final summary CSV
+        
+    Returns:
+        Dictionary containing processed data for reporting
+    """
+    print(f"Looking for existing results at: {output_path}")
+    
+    # Get existing run IDs from CSV
+    existing_run_ids = get_existing_run_ids(output_path)
+    print(f"Found {len(existing_run_ids)} existing run IDs")
+    
+    # Find new runs
+    new_run_paths = find_new_runs(root, existing_run_ids)
+    print(f"Found {len(new_run_paths)} new runs to process")
+    
+    if not new_run_paths:
+        print("No new runs found - loading existing data for reporting")
+        if Path(output_path).exists():
+            final_df = pd.read_csv(output_path)
+            stats_df = add_temporal_columns(final_df)
+            combos = get_model_dataset_combos(stats_df)
+            
+            # Generate analysis on existing data
+            time_series = None
+            comparison = None
+            example_model = None
+            example_dataset = None
+            
+            if not combos.empty:
+                example_model = combos.iloc[0]['model']
+                example_dataset = combos.iloc[0]['scenario_class']
+                time_series = track_model_dataset_over_time(stats_df, example_model, example_dataset)
+                comparison = compare_recent_runs(stats_df, example_model, example_dataset, last_n_runs=3)
+            
+            return {
+                "report": {},
+                "stats_df": stats_df,
+                "combos": combos,
+                "time_series": time_series,
+                "comparison": comparison,
+                "final_df": final_df,
+                "example_model": example_model,
+                "example_dataset": example_dataset,
+                "output_path": output_path,
+                "new_runs_processed": 0
+            }
+        else:
+            # No existing file, process all runs
+            return extract_results(root, output_path)
+    
+    # Process only new runs
+    print(f"Processing new runs: {[p.name for p in new_run_paths]}")
+    new_stats_df = harvest_helm_stats_from_runs(new_run_paths)
+    
+    if new_stats_df.empty:
+        print("No new stats found in new runs")
+        return extract_results_incremental(root, output_path)  # Return existing data
+    
+    # Add temporal information
+    new_stats_df = add_temporal_columns(new_stats_df)
+    
+    # Apply the same filtering as the original extract_results
+    keep_metric_names = ['perplexity', 'exact_match', 'f1_score', 'bleu_4', 'rouge_l']
+    if 'name' in new_stats_df.columns:
+        new_stats_df = new_stats_df[new_stats_df.name.isin(keep_metric_names)].reset_index(drop=True)
+    
+    # Load existing data if it exists
+    if Path(output_path).exists():
+        existing_df = pd.read_csv(output_path)
+        # Combine with new data
+        final_df = pd.concat([existing_df, new_stats_df], ignore_index=True)
+    else:
+        final_df = new_stats_df
+    
+    # Reorder columns for better readability (same as original)
+    key_columns = [
+        'model', 
+        'scenario_class',
+        'run_timestamp', 
+        'run_date',
+        'run_id' if 'run_id' in final_df.columns else 'run',
+        'metric_name',
+        'split'
+    ]
+    
+    # Add all metric/stat columns
+    metric_columns = [col for col in final_df.columns 
+                     if col in ['count', 'sum', 'mean', 'min', 'max', 'std', 'variance', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99']]
+    
+    # Add any remaining columns that might be useful
+    other_columns = [col for col in final_df.columns 
+                    if col not in key_columns + metric_columns + ['run_hour', 'run_weekday']]
+    
+    # Final column order
+    final_column_order = key_columns + metric_columns + other_columns
+    final_column_order = [col for col in final_column_order if col in final_df.columns]
+    
+    final_df = final_df[final_column_order]
+    
+    # Sort by model, scenario, and timestamp for nice ordering
+    sort_columns = ['model', 'scenario_class', 'run_timestamp', 'metric_name']
+    sort_columns = [col for col in sort_columns if col in final_df.columns]
+    final_df = final_df.sort_values(sort_columns).reset_index(drop=True)
+    
+    # Ensure output directory exists
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+
+    # Save to CSV
+    final_df.to_csv(output_path, index=False)
+    print(f"Updated CSV saved with {len(final_df)} total rows ({len(new_stats_df)} new rows)")
+    
+    # Generate analysis on full dataset
+    stats_df = add_temporal_columns(final_df)
+    combos = get_model_dataset_combos(stats_df)
+    
+    # Track example model-dataset combo over time (if available)
+    time_series = None
+    comparison = None
+    example_model = None
+    example_dataset = None
+    
+    if not combos.empty:
+        example_model = combos.iloc[0]['model']
+        example_dataset = combos.iloc[0]['scenario_class']
+        time_series = track_model_dataset_over_time(stats_df, example_model, example_dataset)
+        comparison = compare_recent_runs(stats_df, example_model, example_dataset, last_n_runs=3)
+    
+    return {
+        "report": {},
+        "stats_df": stats_df,
+        "combos": combos,
+        "time_series": time_series,
+        "comparison": comparison,
+        "final_df": final_df,
+        "example_model": example_model,
+        "example_dataset": example_dataset,
+        "output_path": output_path,
+        "new_runs_processed": len(new_run_paths)
+    }
+
+
 def extract_results(root: str | Path = "benchmark_output/runs", 
             output_path: str | Path = "results/benchmark_summary.csv") -> Dict[str, Any]:
     """
     Extract and process all benchmark data, save final summary to CSV.
+    (Legacy function - use extract_results_incremental for better performance)
     
     Args:
         root: Root directory containing benchmark runs
@@ -785,7 +938,7 @@ def report(data: Dict[str, Any]) -> None:
     Args:
         data: Dictionary returned from extract() function
     """
-    report_dict = data["report"]
+    report_dict = data.get("report", {})
     stats_df = data["stats_df"]
     combos = data["combos"]
     time_series = data["time_series"]
@@ -794,10 +947,14 @@ def report(data: Dict[str, Any]) -> None:
     example_model = data["example_model"]
     example_dataset = data["example_dataset"]
     output_path = data["output_path"]
+    new_runs_processed = data.get("new_runs_processed", "unknown")
     
     print("Report summary:")
-    for name, df in report_dict.items():
-        print(f"  {name}: {len(df)} rows, {len(df.columns)} columns")
+    if report_dict:
+        for name, df in report_dict.items():
+            print(f"  {name}: {len(df)} rows, {len(df.columns)} columns")
+    else:
+        print(f"  Incremental processing: {new_runs_processed} new runs processed")
     
     print("\n" + "="*50)
     print("TEMPORAL ANALYSIS")
@@ -841,3 +998,140 @@ def report(data: Dict[str, Any]) -> None:
     print(f"Columns: {list(final_df.columns)}")
     print(f"\nFirst few rows:")
     print(final_df.head().to_string())
+
+
+    # Always show incremental info if available
+    if new_runs_processed != "unknown":
+        print(f"\nINCREMENTAL EXTRACTION SUMMARY:")
+        print(f"   New runs processed: {new_runs_processed}")
+        if new_runs_processed == 0:
+            print("   No new runs found - all data is up to date")
+        else:
+            print(f"   Successfully added {new_runs_processed} new run(s) to the dataset")
+
+
+def get_existing_run_ids(csv_path: str | Path) -> set[str]:
+    """
+    Get the set of run IDs already present in the existing CSV file.
+    
+    Args:
+        csv_path: Path to existing CSV file
+        
+    Returns:
+        Set of run IDs that are already processed
+    """
+    if not Path(csv_path).exists():
+        return set()
+    
+    try:
+        existing_df = pd.read_csv(csv_path)
+        # Handle both 'run_id' and 'run' column names
+        if 'run_id' in existing_df.columns:
+            return set(existing_df['run_id'].unique())
+        elif 'run' in existing_df.columns:
+            return set(existing_df['run'].unique())
+        else:
+            return set()
+    except Exception as e:
+        print(f"Warning: Could not read existing CSV {csv_path}: {e}")
+        return set()
+
+
+def find_new_runs(root: str | Path, existing_run_ids: set[str]) -> List[Path]:
+    """
+    Find run directories that are not in the existing run IDs.
+    
+    Args:
+        root: Root directory containing benchmark runs
+        existing_run_ids: Set of run IDs already processed
+        
+    Returns:
+        List of paths to new run directories
+    """
+    new_run_paths = []
+    
+    for stats_path in Path(root).rglob("stats.json"):
+        run_id = stats_path.parent.parent.name  # Get suite name from path structure
+        if run_id not in existing_run_ids:
+            new_run_paths.append(stats_path.parent.parent)
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_new_runs = []
+    for path in new_run_paths:
+        if path not in seen:
+            seen.add(path)
+            unique_new_runs.append(path)
+    
+    return unique_new_runs
+
+
+def harvest_helm_stats_from_runs(run_paths: List[Path]) -> pd.DataFrame:
+    """
+    Extract stats from specific run paths only.
+    
+    Args:
+        run_paths: List of run directory paths to process
+        
+    Returns:
+        DataFrame with stats from only the specified runs
+    """
+    rows: List[Dict[str, Any]] = []
+
+    for run_path in run_paths:
+        for stats_path in run_path.rglob("stats.json"):
+            # Load stats.json
+            with stats_path.open() as f:
+                stats_list: list[Dict[str, Any]] = json.load(f)
+
+            # Load corresponding run_spec.json
+            run_spec_path = stats_path.parent / "run_spec.json"
+            run_spec = {}
+            if run_spec_path.exists():
+                with run_spec_path.open() as f:
+                    run_spec = json.load(f)
+
+            # Extract metadata from run_spec
+            model = run_spec.get("adapter_spec", {}).get("model", "unknown")
+            run_name = run_spec.get("name", stats_path.parent.name)
+            scenario_class = run_spec.get("scenario_spec", {}).get("class_name", "unknown")
+            scenario_args = run_spec.get("scenario_spec", {}).get("args", {})
+            
+            # Get the suite name from the path structure: benchmark_output/runs/SUITE_NAME/scenario/stats.json
+            suite_name = stats_path.parent.parent.name
+            
+            for stat_entry in stats_list:
+                # Flatten the nested name dictionary
+                name_dict = stat_entry.get("name", {})
+                
+                # Create row with base metadata + flattened name fields + other stat fields
+                row = {
+                    "model": model,
+                    "run": suite_name,  # This now contains the timestamp-based suite name
+                    "run_name": run_name,
+                    "scenario_class": scenario_class,
+                }
+                
+                # Add scenario args as separate columns
+                for arg_key, arg_value in scenario_args.items():
+                    row[f"scenario_{arg_key}"] = arg_value
+                
+                # Add flattened name fields (metric_name, split, etc.)
+                row.update(name_dict)
+                
+                # Add other statistical fields (count, sum, mean, etc.)
+                for key, value in stat_entry.items():
+                    if key != "name":  # Skip the name dict since we already flattened it
+                        row[key] = value
+                
+                rows.append(row)
+
+    if len(rows) == 0:
+        # Return empty DataFrame with expected columns
+        return pd.DataFrame(columns=["model", "run", "run_name", "scenario_class"])
+
+    return (
+        pd.DataFrame(rows)
+        .sort_values(["model", "run"], ascending=[True, True])
+        .reset_index(drop=True)
+    )

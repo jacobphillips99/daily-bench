@@ -180,22 +180,12 @@ The `processCSVData()` function in `script.js` handles data parsing and transfor
 - Change data filtering logic
 - Adjust data aggregation
 
-## Integration with Daily Bench
+## Integration with daily-bench
 
-To automatically update the dashboard with new benchmark results:
+The dashboard is automatically deployed to GitHub Pages when new benchmark data is available. The data is stored in the `results/` directory.
 
-1. **Modify your benchmark script** to copy results to the dashboard directory:
-   ```python
-   # In your benchmark automation
-   import shutil
-   
-   # After running extract_results()
-   shutil.copy("results/benchmark_summary.csv", "dashboard/results/")
-   ```
+To run the benchmarks and extract the results, you can use the following commands:
 
-2. **Set up automated deployment** using GitHub Actions (see deployment section above)
-
-3. **Configure periodic updates** using cron jobs or GitHub Actions scheduled runs
 
 ## Troubleshooting
 
