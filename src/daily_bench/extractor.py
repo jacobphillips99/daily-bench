@@ -61,7 +61,6 @@ def harvest_helm_stats(root: str | Path = "benchmark_output/runs") -> pd.DataFra
                     row[key] = value
             
             rows.append(row)
-
     return (
         pd.DataFrame(rows)
         .sort_values(["model", "run"], ascending=[True, True])
@@ -762,7 +761,7 @@ def extract_results(root: str | Path = "benchmark_output/runs",
     
     # Ensure output directory exists
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Save to CSV
     final_df.to_csv(output_path, index=False)
     
@@ -842,8 +841,3 @@ def report(data: Dict[str, Any]) -> None:
     print(f"Columns: {list(final_df.columns)}")
     print(f"\nFirst few rows:")
     print(final_df.head().to_string())
-    
-if __name__ == "__main__":
-    print("Creating comprehensive report...")
-    data = extract_results(root="benchmark_output/runs", output_path="results/benchmark_summary.csv")
-    report(data)

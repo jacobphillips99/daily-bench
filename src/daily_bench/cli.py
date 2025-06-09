@@ -3,6 +3,7 @@
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -14,7 +15,7 @@ def run_helm_lite() -> None:
     """Run the HELM Lite benchmark runner script."""
     # Get the directory where this script is located
     current_dir = Path(__file__).parent
-    runner_script = current_dir / "helm_lite" / "runner.sh"
+    runner_script = current_dir / "helm_lite" / "run_bench.sh"
     
     if not runner_script.exists():
         print(f"Error: runner.sh not found at {runner_script}")
@@ -49,18 +50,16 @@ def run_helm_lite() -> None:
     finally:
         os.chdir(original_cwd)
 
-def run_results_extractor() -> None:
+def run_results_extractor(results_location: Path, output_location: Path) -> None:
     """Run the results extractor function"""
-    output_path = Path("results/benchmark_summary.csv")
-    data = extract_results(root="benchmark_output/runs", output_path=output_path)
+    data = extract_results(root=results_location, output_path=output_location)
     report(data)
-    print(f"Results extracted to {output_path}")
+    print(f"Results extracted to {output_location}")
     
     # Copy results to dashboard for easy access
     dashboard_csv = Path("dashboard/benchmark_summary.csv")
     if dashboard_csv.parent.exists():
-        import shutil
-        shutil.copy(output_path, dashboard_csv)
+        shutil.copy(output_location, dashboard_csv)
         print(f"Results also copied to {dashboard_csv} for dashboard use")
 
 
@@ -94,7 +93,10 @@ def main() -> None:
     if args.command == "run":
         run_helm_lite()
     elif args.command == "extract":
-        run_results_extractor()
+        current_dir = Path(__file__).parent
+        results_location = current_dir / "helm_lite/benchmark_output/runs"
+        output_location = current_dir.parent.parent / "results/benchmark_summary.csv"
+        run_results_extractor(results_location, output_location)
     else:
         parser.print_help()
         sys.exit(1)

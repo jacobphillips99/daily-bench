@@ -15,6 +15,12 @@
             <p>Track and visualize model performance over time</p>
         </header>
 
+        <!-- Always-visible overview chart -->
+        <div class="overview-chart-container">
+            <h2>📊 All Models Performance Overview</h2>
+            <div id="overviewChart"></div>
+        </div>
+
         <div class="controls">
             <div class="control-group">
                 <label for="modelSelect">Model:</label>
@@ -27,6 +33,7 @@
                 <label for="scenarioSelect">Dataset/Scenario:</label>
                 <select id="scenarioSelect">
                     <option value="">Select a scenario...</option>
+                    <option value="__AVERAGE__">📊 Average across all scenarios</option>
                 </select>
             </div>
             
@@ -55,7 +62,7 @@
 
         <div class="dashboard">
             <div class="chart-container">
-                <h2>Performance Over Time</h2>
+                <h2>Model-Specific Performance</h2>
                 <div id="timeSeriesChart"></div>
             </div>
 

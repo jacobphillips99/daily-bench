@@ -7,7 +7,7 @@ authors = [
     { name = "Jacob Phillips", email = "jacob.phillips8905@gmail.com" }
 ]
 dependencies = [
-    "lm-eval[api]==0.4.8",
+    "crfm-helm[models]==0.5.5",
     "pandas",
 ]
 

@@ -4,9 +4,9 @@ export SUITE_NAME=results-$(date +"%Y%m%d_%H%M%S")
 # The --suite parameter creates a subdirectory within benchmark_output/runs/
 
 # Replace this with your model or models
-export MODELS_TO_RUN="openai/gpt-4o-mini-2024-07-18 openai/gpt-4o-2024-05-13"
-# export MODELS_TO_RUN=openai/gpt-4o-2024-05-13
-# export MODELS_TO_RUN=anthropic/claude-3-5-sonnet-20240620
+# export MODELS_TO_RUN="openai/gpt-4o-mini-2024-07-18"
+# openai/gpt-4o-2024-05-13 anthropic/claude-3-5-sonnet-20240620"
+export MODELS_TO_RUN="openai/gpt-4.1-nano-2025-04-14"
 
 
 # Get these from the list below
@@ -17,9 +17,4 @@ export MAX_EVAL_INSTANCES=100
 export PRIORITY=1
 
 helm-run --conf-paths $RUN_ENTRIES_CONF_PATH --num-train-trials $NUM_TRAIN_TRIALS --max-eval-instances $MAX_EVAL_INSTANCES --priority $PRIORITY --suite $SUITE_NAME --models-to-run $MODELS_TO_RUN --disable-cache
-
 helm-summarize --schema $SCHEMA_PATH --suite $SUITE_NAME
-
-# helm-server --suite $SUITE_NAME
-
-echo "See results at: benchmark_output/runs/$SUITE_NAME"
