@@ -2,7 +2,7 @@ name: Daily Benchmark and Deploy
 
 on:
   schedule:
-    # Run daily at 6am PT (14:00 UTC) (fixme, todo)
+    # Run daily at 6am PT (14:00 UTC) (fixme, todo -- make every 4 hours, make random w jitter?)
     - cron: '0 14 * * *'
   # Allow manual triggering
   workflow_dispatch:
@@ -19,7 +19,7 @@ on:
         type: boolean
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -62,6 +62,15 @@ jobs:
       run: |
         echo "Extracting benchmark results..."
         uv run daily-bench extract
+        
+        # Copy results CSV to dashboard for deployment
+        if [ -f "results/benchmark_summary.csv" ]; then
+          echo "Copying benchmark_summary.csv to dashboard/"
+          mkdir -p dashboard
+          cp results/benchmark_summary.csv dashboard/
+        else
+          echo "No benchmark_summary.csv found in results/"
+        fi
     
     - name: Upload benchmark artifacts
       uses: actions/upload-artifact@v4
@@ -77,8 +86,8 @@ jobs:
         git config --local user.name "github-actions[bot]"
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         
-        # Add any new result files
-        git add results/ dashboard/benchmark_summary.csv || true
+        # Add any new result files (dashboard/ files are ignored by gitignore)
+        git add results/ || true
         
         # Only commit if there are changes
         if ! git diff --staged --quiet; then
