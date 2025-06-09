@@ -115,6 +115,18 @@ jobs:
       run: |
         echo "Using existing dashboard files from repository"
         ls -la dashboard/ || echo "No dashboard directory found"
+        
+        # Copy benchmark_summary.csv from results/ to dashboard/ if it exists
+        if [ -f "results/benchmark_summary.csv" ]; then
+          echo "Copying benchmark_summary.csv from results/ to dashboard/"
+          cp results/benchmark_summary.csv dashboard/
+        else
+          echo "No benchmark_summary.csv found in results/ directory"
+        fi
+        
+        # Show what's in dashboard after copying
+        echo "Dashboard contents after copying:"
+        ls -la dashboard/ || echo "No dashboard directory found"
     
     - name: Setup Pages
       uses: actions/configure-pages@v4
