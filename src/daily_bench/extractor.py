@@ -784,7 +784,7 @@ if __name__ == "__main__":
     final_df = final_df.sort_values(sort_columns).reset_index(drop=True)
     
     # Save to CSV
-    output_path = Path("benchmark_summary.csv")
+    output_path = Path("results/benchmark_summary.csv")
     breakpoint()
     final_df.to_csv(output_path, index=False)
     

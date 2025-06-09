@@ -1,1 +1,2 @@
 # daily-bench
+DailyBench is a lightweight daily benchmark runner for LLMs. We use DailyBench to ensure that providers are not empirically degrading in quality, quantizing, or otherwise changing their models in a way that is not transparent to end-users. We run DailyBench every 4 hours, log the results, and store them in a git repo. You can see the results at [https://github.com/daily-bench/daily-bench](https://github.com/daily-bench/daily-bench). (todo: make static site)

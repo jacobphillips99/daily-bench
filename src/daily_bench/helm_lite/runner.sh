@@ -4,7 +4,7 @@ export SUITE_NAME=results-$(date +"%Y%m%d_%H%M%S")
 # The --suite parameter creates a subdirectory within benchmark_output/runs/
 
 # Replace this with your model or models
-export MODELS_TO_RUN=openai/gpt-4o-mini-2024-07-18
+export MODELS_TO_RUN="openai/gpt-4o-mini-2024-07-18 openai/gpt-4o-2024-05-13"
 # export MODELS_TO_RUN=openai/gpt-4o-2024-05-13
 # export MODELS_TO_RUN=anthropic/claude-3-5-sonnet-20240620
 
