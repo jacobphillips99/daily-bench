@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Bench - Model Performance Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Daily Bench - Model Performance Dashboard</h1>
+            <p>Track and visualize model performance over time</p>
+        </header>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="modelSelect">Model:</label>
+                <select id="modelSelect">
+                    <option value="">Select a model...</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="scenarioSelect">Dataset/Scenario:</label>
+                <select id="scenarioSelect">
+                    <option value="">Select a scenario...</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="metricSelect">Metric:</label>
+                <select id="metricSelect">
+                    <option value="">Select a metric...</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="splitSelect">Split:</label>
+                <select id="splitSelect">
+                    <option value="">All splits</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <button id="refreshBtn">Refresh Data</button>
+            </div>
+        </div>
+
+        <div class="status" id="status">
+            <span class="loading">Loading data...</span>
+        </div>
+
+        <div class="dashboard">
+            <div class="chart-container">
+                <h2>Performance Over Time</h2>
+                <div id="timeSeriesChart"></div>
+            </div>
+
+            <div class="stats-container">
+                <h2>Summary Statistics</h2>
+                <div id="summaryStats"></div>
+            </div>
+
+            <div class="comparison-container">
+                <h2>Recent Performance Comparison</h2>
+                <div id="comparisonChart"></div>
+            </div>
+
+            <div class="data-table-container">
+                <h2>Raw Data</h2>
+                <div class="table-controls">
+                    <label>
+                        Show last: 
+                        <select id="rowLimitSelect">
+                            <option value="10">10 rows</option>
+                            <option value="25">25 rows</option>
+                            <option value="50">50 rows</option>
+                            <option value="100">100 rows</option>
+                            <option value="">All rows</option>
+                        </select>
+                    </label>
+                </div>
+                <div id="dataTable"></div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Built for Daily Bench - Model Performance Tracking</p>
+            <p>Last updated: <span id="lastUpdated">-</span></p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

@@ -691,61 +691,38 @@ def get_performance_summary_by_time(df: pd.DataFrame,
     return summary
 
 
-if __name__ == "__main__":
-    print("Creating comprehensive report...")
-    report = create_comprehensive_report()
+def extract_results(root: str | Path = "benchmark_output/runs", 
+            output_path: str | Path = "results/benchmark_summary.csv") -> Dict[str, Any]:
+    """
+    Extract and process all benchmark data, save final summary to CSV.
     
-    print("\nReport summary:")
-    for name, df in report.items():
-        print(f"  {name}: {len(df)} rows, {len(df.columns)} columns")
-    
-    print("\n" + "="*50)
-    print("TEMPORAL ANALYSIS")
-    print("="*50)
+    Args:
+        root: Root directory containing benchmark runs
+        output_path: Path to save final summary CSV
+        
+    Returns:
+        Dictionary containing processed data for reporting
+    """
+    # Create comprehensive report
+    report = create_comprehensive_report(root)
     
     # Get the main stats dataframe with temporal information
     stats_df = add_temporal_columns(report["stats"])
     
-    print(f"\nStats DataFrame: {len(stats_df)} rows, {len(stats_df.columns)} columns")
-    print(f"Date range: {stats_df['run_date'].min()} to {stats_df['run_date'].max()}")
-    # Handle both 'run_id' and 'run' column names
-    run_col = 'run_id' if 'run_id' in stats_df.columns else 'run'
-    print(f"Unique runs: {stats_df[run_col].nunique()}")
-    
-    # Show model-dataset combinations
-    print(f"\nModel-Dataset Combinations:")
+    # Get model-dataset combinations
     combos = get_model_dataset_combos(stats_df)
-    print(combos.to_string())
     
-    # Example: Track a specific model-dataset combo over time
+    # Track example model-dataset combo over time (if available)
+    time_series = None
+    comparison = None
+    example_model = None
+    example_dataset = None
+    
     if not combos.empty:
-        # Get the first combo as an example
         example_model = combos.iloc[0]['model']
         example_dataset = combos.iloc[0]['scenario_class']
-        
-        print(f"\n" + "-"*50)
-        print(f"TRACKING: {example_model} on {example_dataset}")
-        print("-"*50)
-        
-        # Get time series for this combo
         time_series = track_model_dataset_over_time(stats_df, example_model, example_dataset)
-        print(f"\nTime series data ({len(time_series)} runs):")
-        # Handle both 'run_id' and 'run' column names
-        run_col = 'run_id' if 'run_id' in time_series.columns else 'run'
-        print(time_series[[run_col, 'run_date', 'run_sequence']].to_string())
-        
-        # Compare recent runs
         comparison = compare_recent_runs(stats_df, example_model, example_dataset, last_n_runs=3)
-        print(f"\nRecent runs comparison:")
-        if "error" not in comparison:
-            print(f"  Runs compared: {comparison['runs_compared']}")
-            print(f"  Time span: {comparison['time_span']['days']} days")
-            for metric, data in comparison['metrics'].items():
-                print(f"  {metric}: {data['latest_value']:.3f} (trend: {data['trend']})")
-    
-    print(f"\n" + "="*50)
-    print("CREATING FINAL SUMMARY DATAFRAME")
-    print("="*50)
     
     # Create the final clean dataframe with all key information
     final_df = stats_df.copy()
@@ -783,10 +760,82 @@ if __name__ == "__main__":
     sort_columns = [col for col in sort_columns if col in final_df.columns]
     final_df = final_df.sort_values(sort_columns).reset_index(drop=True)
     
+    # Ensure output directory exists
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    
     # Save to CSV
-    output_path = Path("results/benchmark_summary.csv")
-    breakpoint()
     final_df.to_csv(output_path, index=False)
+    
+    return {
+        "report": report,
+        "stats_df": stats_df,
+        "combos": combos,
+        "time_series": time_series,
+        "comparison": comparison,
+        "final_df": final_df,
+        "example_model": example_model,
+        "example_dataset": example_dataset,
+        "output_path": output_path
+    }
+
+
+def report(data: Dict[str, Any]) -> None:
+    """
+    Print comprehensive analysis report from extracted data.
+    
+    Args:
+        data: Dictionary returned from extract() function
+    """
+    report_dict = data["report"]
+    stats_df = data["stats_df"]
+    combos = data["combos"]
+    time_series = data["time_series"]
+    comparison = data["comparison"]
+    final_df = data["final_df"]
+    example_model = data["example_model"]
+    example_dataset = data["example_dataset"]
+    output_path = data["output_path"]
+    
+    print("Report summary:")
+    for name, df in report_dict.items():
+        print(f"  {name}: {len(df)} rows, {len(df.columns)} columns")
+    
+    print("\n" + "="*50)
+    print("TEMPORAL ANALYSIS")
+    print("="*50)
+    
+    print(f"\nStats DataFrame: {len(stats_df)} rows, {len(stats_df.columns)} columns")
+    print(f"Date range: {stats_df['run_date'].min()} to {stats_df['run_date'].max()}")
+    # Handle both 'run_id' and 'run' column names
+    run_col = 'run_id' if 'run_id' in stats_df.columns else 'run'
+    print(f"Unique runs: {stats_df[run_col].nunique()}")
+    
+    # Show model-dataset combinations
+    print(f"\nModel-Dataset Combinations:")
+    print(combos.to_string())
+    
+    # Example: Track a specific model-dataset combo over time
+    if time_series is not None and not time_series.empty:
+        print(f"\n" + "-"*50)
+        print(f"TRACKING: {example_model} on {example_dataset}")
+        print("-"*50)
+        
+        print(f"\nTime series data ({len(time_series)} runs):")
+        # Handle both 'run_id' and 'run' column names
+        run_col = 'run_id' if 'run_id' in time_series.columns else 'run'
+        print(time_series[[run_col, 'run_date', 'run_sequence']].to_string())
+        
+        # Compare recent runs
+        print(f"\nRecent runs comparison:")
+        if comparison and "error" not in comparison:
+            print(f"  Runs compared: {comparison['runs_compared']}")
+            print(f"  Time span: {comparison['time_span']['days']} days")
+            for metric, data in comparison['metrics'].items():
+                print(f"  {metric}: {data['latest_value']:.3f} (trend: {data['trend']})")
+    
+    print(f"\n" + "="*50)
+    print("FINAL SUMMARY")
+    print("="*50)
     
     print(f"Final summary dataframe saved to: {output_path}")
     print(f"Shape: {final_df.shape}")
@@ -794,13 +843,7 @@ if __name__ == "__main__":
     print(f"\nFirst few rows:")
     print(final_df.head().to_string())
     
-    print(f"\n" + "="*50)
-    print("Ready for interactive analysis!")
-    print("="*50)
-    print("Available functions:")
-    print("- get_model_dataset_combos(stats_df)")  
-    print("- track_model_dataset_over_time(stats_df, model, dataset)")
-    print("- compare_recent_runs(stats_df, model, dataset, last_n_runs=3)")
-    print("- get_performance_summary_by_time(stats_df)")
-    
-    breakpoint()
+if __name__ == "__main__":
+    print("Creating comprehensive report...")
+    data = extract_results(root="benchmark_output/runs", output_path="results/benchmark_summary.csv")
+    report(data)

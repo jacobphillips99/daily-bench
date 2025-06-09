@@ -202,3 +202,7 @@ cython_debug/
 # Benchmark output directories
 **/benchmark_output/
 **/prod_env/
+
+# Data files
+*.csv
+*.parquet

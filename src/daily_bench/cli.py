@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from daily_bench.extractor import extract_results, report
+
 
 def run_helm_lite() -> None:
     """Run the HELM Lite benchmark runner script."""
@@ -47,6 +49,20 @@ def run_helm_lite() -> None:
     finally:
         os.chdir(original_cwd)
 
+def run_results_extractor() -> None:
+    """Run the results extractor function"""
+    output_path = Path("results/benchmark_summary.csv")
+    data = extract_results(root="benchmark_output/runs", output_path=output_path)
+    report(data)
+    print(f"Results extracted to {output_path}")
+    
+    # Copy results to dashboard for easy access
+    dashboard_csv = Path("dashboard/benchmark_summary.csv")
+    if dashboard_csv.parent.exists():
+        import shutil
+        shutil.copy(output_path, dashboard_csv)
+        print(f"Results also copied to {dashboard_csv} for dashboard use")
+
 
 def main() -> None:
     """Main CLI entry point with subcommands."""
@@ -67,10 +83,18 @@ def main() -> None:
         help="Run the HELM Lite benchmark"
     )
     
+    # Add 'extract' subcommand
+    extract_parser = subparsers.add_parser(
+        "extract",
+        help="Extract results from the HELM Lite benchmark"
+    )
+    
     args = parser.parse_args()
     
     if args.command == "run":
         run_helm_lite()
+    elif args.command == "extract":
+        run_results_extractor()
     else:
         parser.print_help()
         sys.exit(1)
