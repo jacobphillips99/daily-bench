@@ -49,17 +49,25 @@ async function loadDefaultData() {
     setLoading(true);
     
     try {
-        // Load from the results directory (server now serves from project root)
-        const response = await fetch('/results/benchmark_summary.csv');
+        // First try to load from the dashboard directory (for deployed GitHub Pages)
+        let response = await fetch('./benchmark_summary.csv');
+        let source = 'dashboard/benchmark_summary.csv';
+        
+        // If that fails, try from the results directory (for local development)
+        if (!response.ok) {
+            response = await fetch('/results/benchmark_summary.csv');
+            source = 'results/benchmark_summary.csv';
+        }
+        
         if (response.ok) {
             const csvText = await response.text();
             processCSVData(csvText);
-            setStatus('Data loaded successfully from results/benchmark_summary.csv', 'success');
+            setStatus(`Data loaded successfully from ${source}`, 'success');
         } else {
-            throw new Error('CSV file not found in results directory');
+            throw new Error('CSV file not found in either dashboard or results directory');
         }
     } catch (error) {
-        console.log('Could not load CSV from results directory:', error.message);
+        console.log('Could not load CSV from either location:', error.message);
         setStatus('No benchmark data found. Run "daily-bench extract" to generate the CSV file in results/.', 'error');
         elements.dashboard.classList.remove('visible');
     }
