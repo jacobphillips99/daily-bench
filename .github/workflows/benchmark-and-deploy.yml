@@ -1,0 +1,82 @@
+name: Daily Benchmark and Deploy
+
+on:
+  schedule:
+    # Run every 4 hours
+    - cron: '0 */4 * * *'
+  # Allow manual triggering
+  workflow_dispatch:
+  # Also run on push to main for testing
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  benchmark-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        cache-dependency-glob: "uv.lock"
+    
+    - name: Set up Python
+      run: uv python install
+    
+    - name: Install dependencies
+      run: uv sync --locked
+    
+    - name: Run daily-bench benchmark
+      run: |
+        echo "Running daily-bench benchmark..."
+        uv run daily-bench run
+    
+    - name: Extract benchmark results
+      run: |
+        echo "Extracting benchmark results..."
+        uv run daily-bench extract
+    
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+    
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: 'dashboard'
+    
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+    
+    - name: Commit and push results
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Add any new result files
+        git add results/ dashboard/benchmark_summary.csv || true
+        
+        # Only commit if there are changes
+        if ! git diff --staged --quiet; then
+          git commit -m "Update benchmark results - $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          git push
+        else
+          echo "No changes to commit"
+        fi 
