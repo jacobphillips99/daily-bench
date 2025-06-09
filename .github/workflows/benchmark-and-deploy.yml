@@ -2,8 +2,8 @@ name: Daily Benchmark and Deploy
 
 on:
   schedule:
-    # Run every 4 hours
-    - cron: '0 */4 * * *'
+    # Run daily at 6am PT (14:00 UTC) (fixme, todo)
+    - cron: '0 14 * * *'
   # Allow manual triggering
   workflow_dispatch:
   # Also run on push to main for testing
@@ -67,8 +67,8 @@ jobs:
     
     - name: Commit and push results
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
         
         # Add any new result files
         git add results/ dashboard/benchmark_summary.csv || true
