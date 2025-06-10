@@ -207,3 +207,5 @@ cython_debug/
 *.csv
 !results/benchmark_summary.csv
 *.parquet
+
+.DS_Store

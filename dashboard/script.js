@@ -252,6 +252,9 @@ function updateOverviewChart() {
         return true;
     });
     
+    // Calculate the total unique scenarios in the filtered data
+    const totalUniqueScenarios = [...new Set(overviewData.map(d => d.scenario_class))].filter(Boolean).length;
+    
     // Calculate averages across scenarios for each model/metric/split/time combination
     const grouped = d3.group(overviewData, 
         d => `${d.model}|${d.metric_name}|${d.split}|${d.run_timestamp}`);
@@ -325,7 +328,8 @@ function updateOverviewChart() {
     });
     
     const metricName = elements.metricSelect.value || 'Performance';
-    const scenarioCount = averagedData.length > 0 ? averagedData[0]._scenarioCount : 0;
+    // Use the total unique scenarios instead of taking from first group
+    const scenarioCount = totalUniqueScenarios;
     
     const layout = {
         title: {
