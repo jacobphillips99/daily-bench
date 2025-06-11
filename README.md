@@ -49,4 +49,8 @@ This tool wraps [HELM Lite](https://crfm.stanford.edu/helm/) and provides:
 
 Built with Python, uses CRFM HELM for benchmarking, and generates static HTML dashboards.
 
+## Developer Notes
+- If you are running the dashboard locally, you need to run `daily-bench extract` to generate the CSV file in the `results/` directory.
+- If you run the dashboard locally with `uv run dashboard/serve.py` and do not see an updated version of your dashboard or data, your web browser may be caching the old data. Try clearing your browser cache or using a private/incognito window.
+
 ## Contributing
