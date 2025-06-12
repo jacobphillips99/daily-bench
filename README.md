@@ -23,25 +23,42 @@ View the current benchmark data at: **[jacobphillips99.github.io/daily-bench](ht
 - Provides a web dashboard to visualize trends
 - Tracks performance changes that might indicate model modifications
 
-## Usage
+## Setup
+<details>
+<summary>Click to expand</summary>
 
 ```bash
-# Install dependencies
-pip install -e .
+# install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
+# clone repo
+git clone https://github.com/jacobphillips99/daily-bench.git
+cd daily-bench
+
+# install dependencies
+uv sync
+
+# activate uv env
+source .venv/bin/activate
+# or prepend commands with `uv run`
+```
+</details>
+
+## Usage
+```bash
 # Run benchmarks (uses HELM Lite under the hood)
 daily-bench run
 
-# Extract results to CSV
+# Extract results and update results CSV
 daily-bench extract
 
 # View dashboard locally
-open dashboard/index.html
+python dashboard/serve.py
 ```
 
-## Current Implementation
+## Implementation
 
-This tool wraps [HELM Lite](https://crfm.stanford.edu/helm/) and provides:
+This tool wraps [HELM Lite](https://crfm.stanford.edu/helm/lite/latest/) and provides:
 - Simple CLI for running benchmarks
 - Results extraction to CSV format
 - Basic web dashboard for visualization
@@ -51,6 +68,6 @@ Built with Python, uses CRFM HELM for benchmarking, and generates static HTML da
 
 ## Developer Notes
 - If you are running the dashboard locally, you need to run `daily-bench extract` to generate the CSV file in the `results/` directory.
-- If you run the dashboard locally with `uv run dashboard/serve.py` and do not see an updated version of your dashboard or data, your web browser may be caching the old data. Try clearing your browser cache or using a private/incognito window.
+- If you run the dashboard locally with `uv run dashboard/serve.py` and do not see an updated version of your dashboard or data, your web browser may be caching the old data. Try clearing your browser cache or using a private or incognito window.
 
 ## Contributing

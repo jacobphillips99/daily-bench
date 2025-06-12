@@ -678,6 +678,18 @@ wheels = [
 ]
 
 [[package]]
+name = "colorlog"
+version = "6.9.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d3/7a/359f4d5df2353f26172b3cc39ea32daa39af8de522205f512f458923e677/colorlog-6.9.0.tar.gz", hash = "sha256:bfba54a1b93b94f54e1f4fe48395725a3d92fd2a4af702f6bd70946bdc0c6ac2", size = 16624 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e3/51/9b208e85196941db2f0654ad0357ca6388ab3ed67efdbfc799f35d1f83aa/colorlog-6.9.0-py3-none-any.whl", hash = "sha256:5906e71acd67cb07a71e779c47c4bcb45fb8c2993eebe9e5adcd6a6f1b283eff", size = 11424 },
+]
+
+[[package]]
 name = "confection"
 version = "0.1.5"
 source = { registry = "https://pypi.org/simple" }
@@ -693,10 +705,11 @@ wheels = [
 [[package]]
 name = "crfm-helm"
 version = "0.5.5"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/stanford-crfm/helm.git?rev=main#b0d4a1a5651b1c7db93198b286b254654b67d2e6" }
 dependencies = [
     { name = "bottle" },
     { name = "cattrs" },
+    { name = "colorlog" },
     { name = "dacite" },
     { name = "datasets" },
     { name = "importlib-resources" },
@@ -722,10 +735,6 @@ dependencies = [
     { name = "uncertainty-calibration" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a2/ad/aa4d4389e38ffda83cd4017076bc8da425e1dd6e70cc32d089cb6669ca5a/crfm_helm-0.5.5.tar.gz", hash = "sha256:49aeb45315368a1b055a906d5eee43b1151d590672572241c5fdad0cc46ab33e", size = 6368321 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/cb/ac/a22f4d26b7784bf896a1e9d1b00b152fa0102e3646c8169336a5ac8a6b63/crfm_helm-0.5.5-py3-none-any.whl", hash = "sha256:02d4655f89c3f8256b2f6fdf5147484a1f1a675e62eebc59047029ec7dbcddda", size = 6854711 },
-]
 
 [package.optional-dependencies]
 models = [
@@ -750,6 +759,7 @@ models = [
     { name = "together", version = "1.5.11", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "tokenizers" },
     { name = "websocket-client" },
+    { name = "writerai" },
 ]
 
 [[package]]
@@ -821,7 +831,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "crfm-helm", extras = ["models"], specifier = "==0.5.5" },
+    { name = "crfm-helm", extras = ["models"], git = "https://github.com/stanford-crfm/helm.git?rev=main" },
     { name = "pandas" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "ruff", marker = "extra == 'dev'" },
@@ -4536,6 +4546,36 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/2b/49/364a615a0cc0872685646c495c7172e4fc7bf1959e3b12a1807a03014e05/wrapt-1.17.2-cp39-cp39-win32.whl", hash = "sha256:f393cda562f79828f38a819f4788641ac7c4085f30f1ce1a68672baa686482bb", size = 36423 },
     { url = "https://files.pythonhosted.org/packages/00/ad/5d2c1b34ba3202cd833d9221833e74d6500ce66730974993a8dc9a94fb8c/wrapt-1.17.2-cp39-cp39-win_amd64.whl", hash = "sha256:36ccae62f64235cf8ddb682073a60519426fdd4725524ae38874adf72b5f2aeb", size = 38772 },
     { url = "https://files.pythonhosted.org/packages/2d/82/f56956041adef78f849db6b289b282e72b55ab8045a75abad81898c28d19/wrapt-1.17.2-py3-none-any.whl", hash = "sha256:b18f2d1533a71f069c7f82d524a52599053d4c7166e9dd374ae2136b7f40f7c8", size = 23594 },
+]
+
+[[package]]
+name = "writer-sdk"
+version = "2.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "distro" },
+    { name = "httpx" },
+    { name = "jiter" },
+    { name = "pydantic" },
+    { name = "sniffio" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/53/66/a02d92cda1c5a1ced300ddb220ebc87191610f89c088ede48f53838c79e0/writer_sdk-2.2.0.tar.gz", hash = "sha256:876ba1ff3356da2f8d40f4291056a6930b9277aa1d619167e17fcc859f40e83a", size = 160607 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/90/33/2c330a915d19bd8aba2a6d9dfe34083fd9b123fe403e5f82cb5d7a4315a9/writer_sdk-2.2.0-py3-none-any.whl", hash = "sha256:4a8460bf114f6ee9b91992de0f310e590f9700706e5350fcbc4017d81988a34c", size = 169168 },
+]
+
+[[package]]
+name = "writerai"
+version = "4.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "writer-sdk" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/31/5c/b8a5a5c18ed710cbb49b4867a5004756979065f6cbf45012ac5ee8bb3054/writerai-4.0.1.tar.gz", hash = "sha256:1b1c3135fd83e739f96b09f7c7c694f84db747e3041000ae25c9521e819c3404", size = 996 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/54/3a/75489e1159a531b01c6048f9fb0249e10b49fc469c8cc43ebaaba0f5a071/writerai-4.0.1-py3-none-any.whl", hash = "sha256:d864ea44513ac52c19a0d0ab16f547658ce7e6e4a0a7628ba8534525604743f4", size = 1316 },
 ]
 
 [[package]]
