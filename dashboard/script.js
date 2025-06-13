@@ -298,22 +298,23 @@ function updateOverviewChart() {
     
     const traces = [];
     modelGroups.forEach((modelData, modelName) => {
-        // Group by timestamp
-        const timeSeriesData = d3.group(modelData, d => d.run_timestamp);
+        // Sort data points by timestamp
+        const sortedData = [...modelData].sort((a, b) => {
+            const aTime = a.run_timestamp || new Date(0);
+            const bTime = b.run_timestamp || new Date(0);
+            return aTime - bTime;
+        });
         
         const x = [];
         const y = [];
         const text = [];
         
-        timeSeriesData.forEach((values, timestamp) => {
-            if (timestamp && timestamp !== 'null') {
-                const meanValue = d3.mean(values, d => d.mean);
-                if (meanValue !== undefined && meanValue !== null) {
-                    x.push(timestamp);
-                    y.push(meanValue);
-                    const scenarioCount = values[0]._scenarioCount || 0;
-                    text.push(`${modelName}<br>Avg across ${scenarioCount} scenarios<br>Score: ${meanValue.toFixed(4)}`);
-                }
+        sortedData.forEach(d => {
+            if (d.run_timestamp) {
+                x.push(d.run_timestamp);
+                y.push(d.mean);
+                const scenarioCount = d._scenarioCount || 0;
+                text.push(`${modelName}<br>Avg across ${scenarioCount} scenarios<br>Score: ${d.mean.toFixed(4)}`);
             }
         });
         
@@ -391,27 +392,28 @@ function updateTimeSeriesChart() {
     const titlePrefix = isAveraging ? 'Average ' : '';
     const titleSuffix = isAveraging ? ' (across scenarios)' : '';
     
-    // Group data by run_timestamp and calculate mean for each timestamp
-    const timeSeriesData = d3.group(filteredData, d => d.run_timestamp);
+    // Sort data points by timestamp
+    const sortedData = [...filteredData].sort((a, b) => {
+        const aTime = a.run_timestamp || new Date(0);
+        const bTime = b.run_timestamp || new Date(0);
+        return aTime - bTime;
+    });
     
     const x = [];
     const y = [];
     const text = [];
     
-    timeSeriesData.forEach((values, timestamp) => {
-        if (timestamp && timestamp !== 'null') {
-            const meanValue = d3.mean(values, d => d.mean);
-            if (meanValue !== undefined && meanValue !== null) {
-                x.push(timestamp);
-                y.push(meanValue);
-                
-                if (isAveraging) {
-                    const scenarioCount = values[0]._scenarioCount || 0;
-                    text.push(`${values.length} data points<br>Avg across ${scenarioCount} scenarios<br>Mean: ${meanValue.toFixed(4)}`);
-                } else {
-                    const scenario = values[0].scenario_class || 'Unknown';
-                    text.push(`Scenario: ${scenario}<br>${values.length} data points<br>Mean: ${meanValue.toFixed(4)}`);
-                }
+    sortedData.forEach(d => {
+        if (d.run_timestamp) {
+            x.push(d.run_timestamp);
+            y.push(d.mean);
+            
+            if (isAveraging) {
+                const scenarioCount = d._scenarioCount || 0;
+                text.push(`${d._scenarioCount || 1} data points<br>Avg across ${scenarioCount} scenarios<br>Mean: ${d.mean.toFixed(4)}`);
+            } else {
+                const scenario = d.scenario_class || 'Unknown';
+                text.push(`Scenario: ${scenario}<br>Mean: ${d.mean.toFixed(4)}`);
             }
         }
     });
