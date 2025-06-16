@@ -2,8 +2,8 @@ name: Daily Benchmark and Deploy
 
 on:
   schedule:
-    # Run daily at 6am PT (14:00 UTC) (fixme, todo -- make every 4 hours, make random w jitter?)
-    - cron: '0 14 * * *'
+    # Run every 6 hours at 10am, 4pm, 10pm, 4am PT (00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: '0 0,6,12,18 * * *'
   # Allow manual triggering
   workflow_dispatch:
     inputs:

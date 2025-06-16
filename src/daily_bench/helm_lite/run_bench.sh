@@ -10,7 +10,6 @@ export MODELS_TO_RUN="anthropic/claude-3-7-sonnet-20250219 openai/gpt-4o-mini-20
 # export MODELS_TO_RUN="anthropic/claude-sonnet-4-20250514"
 
 
-
 # Get these from the list below
 export RUN_ENTRIES_CONF_PATH=run_entries_lite_20240424_instruct.conf
 export SCHEMA_PATH=schema_lite.yaml
