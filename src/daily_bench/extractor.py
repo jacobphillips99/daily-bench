@@ -281,7 +281,6 @@ def harvest_scenario_state(root: str | Path = "benchmark_output/runs") -> pd.Dat
             
             # Get first completion (there's usually only one for generation tasks)
             completion = result.get("completions", [{}])[0] if result.get("completions") else {}
-            
             row = {
                 "run_id": run_id,
                 # Instance info
