@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from typing import Any, Dict, List, Optional
 import datetime
+import csv
 
 
 def harvest_helm_stats(root: str | Path = "benchmark_output/runs") -> pd.DataFrame:
@@ -800,16 +801,16 @@ def extract_results_incremental(root: str | Path = "benchmark_output/runs",
     
     final_df = final_df[final_column_order]
     
-    # Sort by model, scenario, and timestamp for nice ordering
-    sort_columns = ['model', 'scenario_class', 'run_timestamp', 'metric_name']
+    # Sort by model, scenario, timestamp, and metric name for consistent ordering
+    sort_columns = ['model', 'scenario_class', 'run_timestamp', 'name']
     sort_columns = [col for col in sort_columns if col in final_df.columns]
     final_df = final_df.sort_values(sort_columns).reset_index(drop=True)
     
     # Ensure output directory exists
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-    # Save to CSV
-    final_df.to_csv(output_path, index=False)
+    # Save to CSV with proper line endings and quoting
+    final_df.to_csv(output_path, index=False, lineterminator='\n', quoting=csv.QUOTE_MINIMAL)
     print(f"Updated CSV saved with {len(final_df)} total rows ({len(new_stats_df)} new rows)")
     
     # Generate analysis on full dataset

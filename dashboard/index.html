@@ -15,84 +15,120 @@
             <p>Track and visualize model performance over time</p>
         </header>
 
-        <!-- Always-visible overview chart -->
-        <div class="overview-chart-container">
-            <h2>📊 All Models Performance Overview</h2>
-            <div id="overviewChart"></div>
-        </div>
-
-        <div class="controls">
-            <div class="control-group">
-                <label for="modelSelect">Model:</label>
-                <select id="modelSelect">
-                    <option value="">Select a model...</option>
-                </select>
-            </div>
-            
-            <div class="control-group">
-                <label for="scenarioSelect">Dataset/Scenario:</label>
-                <select id="scenarioSelect">
-                    <option value="">Select a scenario...</option>
-                    <option value="__AVERAGE__">📊 Average across all scenarios</option>
-                </select>
-            </div>
-            
-            <div class="control-group">
-                <label for="metricSelect">Metric:</label>
-                <select id="metricSelect">
-                    <option value="">Select a metric...</option>
-                </select>
-            </div>
-
-            <div class="control-group">
-                <label for="splitSelect">Split:</label>
-                <select id="splitSelect">
-                    <option value="">All splits</option>
-                </select>
-            </div>
-
-            <div class="control-group">
-                <button id="refreshBtn">Refresh Data</button>
-            </div>
-        </div>
-
         <div class="status" id="status">
             <span class="loading">Loading data...</span>
         </div>
 
-        <div class="dashboard">
-            <div class="chart-container">
-                <h2>Model-Specific Performance</h2>
-                <div id="timeSeriesChart"></div>
+        <!-- Section 1: All Models Performance -->
+        <section class="all-models-section">
+            <div class="section-header">
+                <h2>📊 All Models Performance</h2>
+                <p>Compare performance across all available models</p>
             </div>
-
-            <div class="stats-container">
-                <h2>Summary Statistics</h2>
-                <div id="summaryStats"></div>
-            </div>
-
-            <div class="comparison-container">
-                <h2>Recent Performance Comparison</h2>
-                <div id="comparisonChart"></div>
-            </div>
-
-            <div class="data-table-container">
-                <h2>Raw Data</h2>
-                <div class="table-controls">
-                    <label>
-                        Show last: 
-                        <select id="rowLimitSelect">
-                            <option value="10">10 rows</option>
-                            <option value="25">25 rows</option>
-                            <option value="50">50 rows</option>
-                            <option value="100">100 rows</option>
-                            <option value="">All rows</option>
-                        </select>
-                    </label>
+            
+            <div class="controls all-models-controls">
+                <div class="control-group">
+                    <label for="allModelsMetricSelect">Metric:</label>
+                    <select id="allModelsMetricSelect">
+                        <option value="">Select a metric...</option>
+                    </select>
                 </div>
-                <div id="dataTable"></div>
+                
+                <div class="control-group">
+                    <label for="allModelsScenarioSelect">Dataset/Scenario:</label>
+                    <select id="allModelsScenarioSelect">
+                        <option value="__AVERAGE__">📊 Average across all scenarios</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="allModelsSplitSelect">Split:</label>
+                    <select id="allModelsSplitSelect">
+                        <option value="">All splits</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <button id="refreshBtn">Refresh Data</button>
+                </div>
             </div>
-        </div>
+
+            <div class="overview-chart-container">
+                <div id="overviewChart"></div>
+            </div>
+        </section>
+
+        <!-- Section 2: Individual Model Analysis -->
+        <section class="individual-model-section">
+            <div class="section-header">
+                <h2>🔍 Individual Model Analysis</h2>
+                <p>Deep dive into a specific model's performance</p>
+            </div>
+
+            <div class="controls individual-model-controls">
+                <div class="control-group">
+                    <label for="individualModelSelect">Select Model:</label>
+                    <select id="individualModelSelect">
+                        <option value="">Choose a model to analyze...</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="individualScenarioSelect">Dataset/Scenario:</label>
+                    <select id="individualScenarioSelect">
+                        <option value="__AVERAGE__">📊 Average across all scenarios</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="individualMetricSelect">Metric:</label>
+                    <select id="individualMetricSelect">
+                        <option value="">Select a metric...</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="individualSplitSelect">Split:</label>
+                    <select id="individualSplitSelect">
+                        <option value="">All splits</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="dashboard individual-model-dashboard">
+                <div class="chart-container">
+                    <h3>Performance Over Time</h3>
+                    <div id="timeSeriesChart"></div>
+                </div>
+
+                <div class="stats-container">
+                    <h3>Summary Statistics</h3>
+                    <div id="summaryStats"></div>
+                </div>
+
+                <div class="comparison-container">
+                    <h3>Recent Performance Comparison</h3>
+                    <div id="comparisonChart"></div>
+                </div>
+
+                <div class="data-table-container">
+                    <h3>Raw Data</h3>
+                    <div class="table-controls">
+                        <label>
+                            Show last: 
+                            <select id="rowLimitSelect">
+                                <option value="10">10 rows</option>
+                                <option value="25">25 rows</option>
+                                <option value="50">50 rows</option>
+                                <option value="100">100 rows</option>
+                                <option value="">All rows</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div id="dataTable"></div>
+                </div>
+            </div>
+        </section>
 
         <footer>
             <p>Built for Daily Bench - Model Performance Tracking</p>

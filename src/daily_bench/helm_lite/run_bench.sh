@@ -14,7 +14,7 @@ export MODELS_TO_RUN="anthropic/claude-3-7-sonnet-20250219 openai/gpt-4o-mini-20
 export RUN_ENTRIES_CONF_PATH=run_entries_lite_20240424_instruct.conf
 export SCHEMA_PATH=schema_lite.yaml
 export NUM_TRAIN_TRIALS=1
-export MAX_EVAL_INSTANCES=100
+export MAX_EVAL_INSTANCES=50
 export PRIORITY=1
 
 helm-run --conf-paths $RUN_ENTRIES_CONF_PATH --num-train-trials $NUM_TRAIN_TRIALS --max-eval-instances $MAX_EVAL_INSTANCES --priority $PRIORITY --suite $SUITE_NAME --models-to-run $MODELS_TO_RUN --disable-cache
