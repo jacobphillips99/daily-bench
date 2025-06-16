@@ -10,7 +10,6 @@ let individualModelData = [];
 const allModelsElements = {
     metricSelect: document.getElementById('allModelsMetricSelect'),
     scenarioSelect: document.getElementById('allModelsScenarioSelect'),
-    splitSelect: document.getElementById('allModelsSplitSelect'),
     refreshBtn: document.getElementById('refreshBtn')
 };
 
@@ -18,7 +17,6 @@ const individualElements = {
     modelSelect: document.getElementById('individualModelSelect'),
     scenarioSelect: document.getElementById('individualScenarioSelect'),
     metricSelect: document.getElementById('individualMetricSelect'),
-    splitSelect: document.getElementById('individualSplitSelect'),
     rowLimitSelect: document.getElementById('rowLimitSelect')
 };
 
@@ -40,13 +38,11 @@ function setupEventListeners() {
     // All models section listeners
     allModelsElements.metricSelect.addEventListener('change', updateAllModelsVisualization);
     allModelsElements.scenarioSelect.addEventListener('change', updateAllModelsVisualization);
-    allModelsElements.splitSelect.addEventListener('change', updateAllModelsVisualization);
     
     // Individual model section listeners
     individualElements.modelSelect.addEventListener('change', updateIndividualModelVisualization);
     individualElements.scenarioSelect.addEventListener('change', updateIndividualModelVisualization);
     individualElements.metricSelect.addEventListener('change', updateIndividualModelVisualization);
-    individualElements.splitSelect.addEventListener('change', updateIndividualModelVisualization);
     individualElements.rowLimitSelect.addEventListener('change', updateDataTable);
 }
 
@@ -140,18 +136,15 @@ function updateAllFilters() {
     const models = [...new Set(allData.map(d => d.model))].filter(Boolean).sort();
     const scenarios = [...new Set(allData.map(d => d.scenario_class))].filter(Boolean).sort();
     const metrics = [...new Set(allData.map(d => d.metric_name))].filter(Boolean).sort();
-    const splits = [...new Set(allData.map(d => d.split))].filter(Boolean).sort();
     
     // Update all models section options
     updateSelectOptions(allModelsElements.metricSelect, metrics);
     updateSelectOptions(allModelsElements.scenarioSelect, scenarios, false, true); // Include "All" option for scenarios
-    updateSelectOptions(allModelsElements.splitSelect, splits, true); // Include "All" option for splits
     
     // Update individual model section options
     updateSelectOptions(individualElements.modelSelect, models);
     updateSelectOptions(individualElements.scenarioSelect, scenarios, false, true); // Include "All" option for scenarios
     updateSelectOptions(individualElements.metricSelect, metrics);
-    updateSelectOptions(individualElements.splitSelect, splits, true); // Include "All" option for splits
     
     // Set defaults for all models section
     if (metrics.length > 0 && !allModelsElements.metricSelect.value) {
@@ -202,7 +195,6 @@ function updateAllModelsVisualization() {
     // Filter data for all models section - no model filtering, always show all models
     allModelsData = allData.filter(row => {
         if (allModelsElements.metricSelect.value && row.metric_name !== allModelsElements.metricSelect.value) return false;
-        if (allModelsElements.splitSelect.value && row.split !== allModelsElements.splitSelect.value) return false;
         return true;
     });
     
@@ -229,7 +221,6 @@ function updateIndividualModelVisualization() {
     individualModelData = allData.filter(row => {
         if (row.model !== individualElements.modelSelect.value) return false;
         if (individualElements.metricSelect.value && row.metric_name !== individualElements.metricSelect.value) return false;
-        if (individualElements.splitSelect.value && row.split !== individualElements.splitSelect.value) return false;
         return true;
     });
     
@@ -253,14 +244,45 @@ function calculateAllModelsScenarioAverages(data) {
     const allScenarios = [...new Set(data.map(d => d.scenario_class))].filter(Boolean);
     const totalScenarioCount = allScenarios.length;
     
-    // Group by model, metric, split, and timestamp to calculate averages across scenarios
+    console.log('🔍 Debug - All scenarios in filtered data:', allScenarios);
+    console.log('🔍 Debug - Total scenario count:', totalScenarioCount);
+    
+    // Group by model, metric, and timestamp only (no split)
     const grouped = d3.group(data, 
-        d => `${d.model}|${d.metric_name}|${d.split}|${d.run_timestamp}`);
+        d => `${d.model}|${d.metric_name}|${d.run_timestamp}`);
+    
+    // First pass: find the maximum number of scenarios for any timestamp
+    let maxScenarioCount = 0;
+    grouped.forEach((group, key) => {
+        const scenarioCount = [...new Set(group.map(d => d.scenario_class))].filter(Boolean).length;
+        const scenarios = [...new Set(group.map(d => d.scenario_class))].filter(Boolean);
+        console.log(`🔍 Debug - ${key} has ${scenarioCount} scenarios:`, scenarios);
+        maxScenarioCount = Math.max(maxScenarioCount, scenarioCount);
+    });
+    
+    console.log('🔍 Debug - Max scenario count found:', maxScenarioCount);
+    console.log('🔍 Debug - Missing scenario analysis:');
+    
+    // Show which scenarios are missing where
+    grouped.forEach((group, key) => {
+        const scenarios = [...new Set(group.map(d => d.scenario_class))].filter(Boolean);
+        const missingScenarios = allScenarios.filter(s => !scenarios.includes(s));
+        if (missingScenarios.length > 0) {
+            console.log(`  ${key} is missing: ${missingScenarios.join(', ')}`);
+        }
+    });
     
     const averagedData = [];
     
     grouped.forEach((group, key) => {
-        const [model, metric_name, split, run_timestamp] = key.split('|');
+        const [model, metric_name, run_timestamp] = key.split('|');
+        
+        // Only include groups that have the maximum number of scenarios
+        const currentScenarioCount = [...new Set(group.map(d => d.scenario_class))].filter(Boolean).length;
+        if (currentScenarioCount !== maxScenarioCount) {
+            console.log(`🔍 Debug - Skipping ${key} because it has ${currentScenarioCount} scenarios instead of ${maxScenarioCount}`);
+            return; // Skip this timestamp as it doesn't have all scenarios
+        }
         
         // Calculate averages across scenarios for each numeric metric
         const numericColumns = ['count', 'sum', 'mean', 'min', 'max', 'std', 'variance', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99'];
@@ -276,22 +298,23 @@ function calculateAllModelsScenarioAverages(data) {
         // Create averaged row
         const averagedRow = {
             model: model,
-            scenario_class: `Average (${totalScenarioCount} scenarios)`,
+            scenario_class: `Average (${maxScenarioCount} scenarios)`,
             metric_name: metric_name,
-            split: split,
+            split: 'combined', // Since we're ignoring splits
             run_timestamp: run_timestamp === 'null' ? null : new Date(run_timestamp),
             run_date: run_timestamp === 'null' ? null : new Date(run_timestamp),
             run_id: group[0].run_id || group[0].run,
             ...averages,
             // Add metadata about the averaging
             _isAverage: true,
-            _scenarioCount: totalScenarioCount,
+            _scenarioCount: maxScenarioCount,
             _scenarios: allScenarios.join(', ')
         };
         
         averagedData.push(averagedRow);
     });
     
+    console.log('🔍 Debug - Final averaged data points:', averagedData.length);
     return averagedData;
 }
 
@@ -324,13 +347,23 @@ function updateOverviewChart() {
     
     const traces = [];
     modelTimestampGroups.forEach((timestampGroups, modelName) => {
+        // First pass: find the maximum number of data points for this model
+        let maxDataPoints = 0;
+        timestampGroups.forEach((group, timestamp) => {
+            if (timestamp === 0) return;
+            const values = group.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
+            maxDataPoints = Math.max(maxDataPoints, values.length);
+        });
+        
         const processedData = [];
         
         timestampGroups.forEach((group, timestamp) => {
             if (timestamp === 0) return; // Skip invalid timestamps
             
             const values = group.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
-            if (values.length > 0) {
+            
+            // Only include timestamps that have the maximum number of data points
+            if (values.length > 0 && values.length === maxDataPoints) {
                 const meanValue = d3.mean(values);
                 const stdDev = values.length > 1 ? d3.deviation(values) : 0;
                 const scenarios = [...new Set(group.map(d => d.scenario_class))].filter(Boolean);
@@ -353,7 +386,7 @@ function updateOverviewChart() {
             const x = processedData.map(d => d.timestamp);
             const y = processedData.map(d => d.mean);
             const text = processedData.map(d => 
-                `${modelName}<br>Mean: ${d.mean.toFixed(4)}<br>Std Dev: ${d.stdDev.toFixed(4)}<br>Data points: ${d.count}`
+                `${modelName}<br>Mean: ${d.mean.toFixed(4)}`
             );
             
             traces.push({
@@ -431,13 +464,23 @@ function updateTimeSeriesChart() {
         d => d.run_timestamp ? d.run_timestamp.getTime() : 0
     );
     
+    // First pass: find the maximum number of data points across all timestamps
+    let maxDataPoints = 0;
+    timestampGroups.forEach((group, timestamp) => {
+        if (timestamp === 0) return;
+        const values = group.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
+        maxDataPoints = Math.max(maxDataPoints, values.length);
+    });
+    
     // Process each timestamp group to get a single point
     const processedData = [];
     timestampGroups.forEach((group, timestamp) => {
         if (timestamp === 0) return; // Skip invalid timestamps
         
         const values = group.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
-        if (values.length > 0) {
+        
+        // Only include timestamps that have the maximum number of data points
+        if (values.length > 0 && values.length === maxDataPoints) {
             const meanValue = d3.mean(values);
             const stdDev = values.length > 1 ? d3.deviation(values) : 0;
             
@@ -458,9 +501,9 @@ function updateTimeSeriesChart() {
     const y = processedData.map(d => d.mean);
     const text = processedData.map(d => {
         if (isAveraging) {
-            return `Mean: ${d.mean.toFixed(4)}<br>Std Dev: ${d.stdDev.toFixed(4)}<br>Data points: ${d.count}`;
+            return `Mean: ${d.mean.toFixed(4)}`;
         } else {
-            return `Scenario: ${d.scenarios}<br>Mean: ${d.mean.toFixed(4)}<br>Std Dev: ${d.stdDev.toFixed(4)}`;
+            return `Scenario: ${d.scenarios}<br>Mean: ${d.mean.toFixed(4)}`;
         }
     });
     
@@ -653,9 +696,7 @@ function updateComparisonChart() {
             text.push(
                 `Date: ${date.toLocaleDateString()}<br>` +
                 `Mean: ${meanValue.toFixed(4)}<br>` +
-                `Std Dev: ${stdDev.toFixed(4)}<br>` +
-                `Runs: ${dayData.length}<br>` +
-                `Data points: ${values.length}`
+                `Runs: ${dayData.length}`
             );
         }
     });
