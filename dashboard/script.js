@@ -34,11 +34,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function setupEventListeners() {
     allModelsElements.refreshBtn.addEventListener('click', loadDefaultData);
-    
+
     // All models section listeners
     allModelsElements.metricSelect.addEventListener('change', updateAllModelsVisualization);
     allModelsElements.scenarioSelect.addEventListener('change', updateAllModelsVisualization);
-    
+
     // Individual model section listeners
     individualElements.modelSelect.addEventListener('change', updateIndividualModelVisualization);
     individualElements.scenarioSelect.addEventListener('change', updateIndividualModelVisualization);
@@ -47,6 +47,7 @@ function setupEventListeners() {
 }
 
 function setStatus(message, type = 'info') {
+
     sharedElements.status.innerHTML = message;
     sharedElements.status.className = `status ${type}`;
 }
@@ -60,20 +61,20 @@ function setLoading(isLoading) {
 
 async function loadDefaultData() {
     setLoading(true);
-    
+
     try {
         // First try to load from the dashboard directory (for deployed GitHub Pages)
         console.log('Attempting to load CSV from dashboard directory: ./benchmark_summary.csv');
         let response = await fetch('./benchmark_summary.csv');
         let source = 'dashboard/benchmark_summary.csv';
-        
+
         // If that fails, try from the results directory (for local development)
         if (!response.ok) {
             console.log(`Dashboard directory failed (${response.status}), trying results directory: /results/benchmark_summary.csv`);
             response = await fetch('/results/benchmark_summary.csv');
             source = 'results/benchmark_summary.csv';
         }
-        
+
         if (response.ok) {
             console.log(`✅ CSV loaded successfully from: ${source}`);
             console.log(`Response status: ${response.status}, Content-Type: ${response.headers.get('content-type')}`);
@@ -95,7 +96,7 @@ async function loadDefaultData() {
 function processCSVData(csvText) {
     // Parse CSV using D3
     allData = d3.csvParse(csvText);
-    
+
     // Convert numeric columns
     const numericColumns = ['count', 'sum', 'mean', 'min', 'max', 'std', 'variance', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99'];
     allData.forEach(row => {
@@ -106,7 +107,7 @@ function processCSVData(csvText) {
         if (row.run_date) {
             row.run_date = new Date(row.run_date);
         }
-        
+
         // Convert numeric columns
         numericColumns.forEach(col => {
             if (row[col] && row[col] !== '') {
@@ -119,11 +120,11 @@ function processCSVData(csvText) {
             row.metric_name = row.name;
         }
     });
-    
+
     // Log available columns for debugging
     console.log('Available columns:', Object.keys(allData[0] || {}));
     console.log('Sample row:', allData[0]);
-    
+
     isDataLoaded = true;
     updateAllFilters();
     updateAllModelsVisualization();
@@ -136,23 +137,23 @@ function updateAllFilters() {
     const models = [...new Set(allData.map(d => d.model))].filter(Boolean).sort();
     const scenarios = [...new Set(allData.map(d => d.scenario_class))].filter(Boolean).sort();
     const metrics = [...new Set(allData.map(d => d.metric_name))].filter(Boolean).sort();
-    
+
     // Update all models section options
     updateSelectOptions(allModelsElements.metricSelect, metrics);
     updateSelectOptions(allModelsElements.scenarioSelect, scenarios, false, true); // Include "All" option for scenarios
-    
+
     // Update individual model section options
     updateSelectOptions(individualElements.modelSelect, models);
     updateSelectOptions(individualElements.scenarioSelect, scenarios, false, true); // Include "All" option for scenarios
     updateSelectOptions(individualElements.metricSelect, metrics);
-    
+
     // Set defaults for all models section
     if (metrics.length > 0 && !allModelsElements.metricSelect.value) {
         // Default to exact_match if available, otherwise first metric
         const defaultMetric = metrics.includes('exact_match') ? 'exact_match' : metrics[0];
         allModelsElements.metricSelect.value = defaultMetric;
     }
-    
+
     // Set defaults for individual model section
     if (metrics.length > 0 && !individualElements.metricSelect.value) {
         // Default to exact_match if available, otherwise first metric
@@ -164,7 +165,7 @@ function updateAllFilters() {
 function updateSelectOptions(selectElement, options, includeAll = false, isScenario = false) {
     const currentValue = selectElement.value;
     selectElement.innerHTML = '';
-    
+
     // Add default option
     if (includeAll) {
         selectElement.appendChild(new Option(isScenario ? 'All scenarios' : 'All splits', ''));
@@ -173,16 +174,16 @@ function updateSelectOptions(selectElement, options, includeAll = false, isScena
     } else {
         selectElement.appendChild(new Option(`Select ${selectElement.labels[0].textContent.toLowerCase()}...`, ''));
     }
-    
+
     // Add average option for scenario selects
     if (isScenario) {
         selectElement.appendChild(new Option('📊 Average across all scenarios', '__AVERAGE__'));
     }
-    
+
     options.forEach(option => {
         selectElement.appendChild(new Option(option, option));
     });
-    
+
     // Restore previous selection if it still exists
     if (options.includes(currentValue) || currentValue === '__AVERAGE__') {
         selectElement.value = currentValue;
@@ -191,51 +192,51 @@ function updateSelectOptions(selectElement, options, includeAll = false, isScena
 
 function updateAllModelsVisualization() {
     if (!isDataLoaded) return;
-    
+
     // Filter data for all models section - no model filtering, always show all models
     allModelsData = allData.filter(row => {
         if (allModelsElements.metricSelect.value && row.metric_name !== allModelsElements.metricSelect.value) return false;
         return true;
     });
-    
+
     // Handle scenario filtering/averaging
     if (allModelsElements.scenarioSelect.value === '__AVERAGE__') {
         allModelsData = calculateAllModelsScenarioAverages(allModelsData);
     } else if (allModelsElements.scenarioSelect.value) {
         allModelsData = allModelsData.filter(row => row.scenario_class === allModelsElements.scenarioSelect.value);
     }
-    
+
     updateOverviewChart();
 }
 
 function updateIndividualModelVisualization() {
     if (!isDataLoaded) return;
-    
+
     // Check if a model is selected
     if (!individualElements.modelSelect.value) {
         sharedElements.dashboard.classList.remove('visible');
         return;
     }
-    
+
     // Filter data for individual model section
     individualModelData = allData.filter(row => {
         if (row.model !== individualElements.modelSelect.value) return false;
         if (individualElements.metricSelect.value && row.metric_name !== individualElements.metricSelect.value) return false;
         return true;
     });
-    
+
     // Handle scenario filtering/averaging
     if (individualElements.scenarioSelect.value === '__AVERAGE__') {
         individualModelData = calculateIndividualModelScenarioAverages(individualModelData);
     } else if (individualElements.scenarioSelect.value) {
         individualModelData = individualModelData.filter(row => row.scenario_class === individualElements.scenarioSelect.value);
     }
-    
+
     updateTimeSeriesChart();
     updateSummaryStats();
     updateComparisonChart();
     updateDataTable();
-    
+
     sharedElements.dashboard.classList.add('visible');
 }
 
@@ -243,14 +244,14 @@ function calculateAllModelsScenarioAverages(data) {
     // Get all unique scenarios first
     const allScenarios = [...new Set(data.map(d => d.scenario_class))].filter(Boolean);
     const totalScenarioCount = allScenarios.length;
-    
+
     console.log('🔍 Debug - All scenarios in filtered data:', allScenarios);
     console.log('🔍 Debug - Total scenario count:', totalScenarioCount);
-    
+
     // Group by model, metric, and timestamp only (no split)
-    const grouped = d3.group(data, 
+    const grouped = d3.group(data,
         d => `${d.model}|${d.metric_name}|${d.run_timestamp}`);
-    
+
     // First pass: find the maximum number of scenarios for any timestamp
     let maxScenarioCount = 0;
     grouped.forEach((group, key) => {
@@ -259,10 +260,10 @@ function calculateAllModelsScenarioAverages(data) {
         console.log(`🔍 Debug - ${key} has ${scenarioCount} scenarios:`, scenarios);
         maxScenarioCount = Math.max(maxScenarioCount, scenarioCount);
     });
-    
+
     console.log('🔍 Debug - Max scenario count found:', maxScenarioCount);
     console.log('🔍 Debug - Missing scenario analysis:');
-    
+
     // Show which scenarios are missing where
     grouped.forEach((group, key) => {
         const scenarios = [...new Set(group.map(d => d.scenario_class))].filter(Boolean);
@@ -271,30 +272,30 @@ function calculateAllModelsScenarioAverages(data) {
             console.log(`  ${key} is missing: ${missingScenarios.join(', ')}`);
         }
     });
-    
+
     const averagedData = [];
-    
+
     grouped.forEach((group, key) => {
         const [model, metric_name, run_timestamp] = key.split('|');
-        
+
         // Only include groups that have the maximum number of scenarios
         const currentScenarioCount = [...new Set(group.map(d => d.scenario_class))].filter(Boolean).length;
         if (currentScenarioCount !== maxScenarioCount) {
             console.log(`🔍 Debug - Skipping ${key} because it has ${currentScenarioCount} scenarios instead of ${maxScenarioCount}`);
             return; // Skip this timestamp as it doesn't have all scenarios
         }
-        
+
         // Calculate averages across scenarios for each numeric metric
         const numericColumns = ['count', 'sum', 'mean', 'min', 'max', 'std', 'variance', 'p25', 'p50', 'p75', 'p90', 'p95', 'p99'];
         const averages = {};
-        
+
         numericColumns.forEach(col => {
             const values = group.map(d => d[col]).filter(v => v !== undefined && v !== null && !isNaN(v));
             if (values.length > 0) {
                 averages[col] = d3.mean(values);
             }
         });
-        
+
         // Create averaged row
         const averagedRow = {
             model: model,
@@ -310,10 +311,10 @@ function calculateAllModelsScenarioAverages(data) {
             _scenarioCount: maxScenarioCount,
             _scenarios: allScenarios.join(', ')
         };
-        
+
         averagedData.push(averagedRow);
     });
-    
+
     console.log('🔍 Debug - Final averaged data points:', averagedData.length);
     return averagedData;
 }
@@ -324,27 +325,27 @@ function calculateIndividualModelScenarioAverages(data) {
 
 function updateOverviewChart() {
     const chartDiv = document.getElementById('overviewChart');
-    
+
     if (!isDataLoaded || allModelsData.length === 0) {
         chartDiv.innerHTML = '<div class="empty-state"><h3>No data to display</h3><p>Select filters to view all models comparison.</p></div>';
         return;
     }
-    
+
     // Calculate the total unique scenarios in the filtered data
     const isAveraging = allModelsElements.scenarioSelect.value === '__AVERAGE__';
-    const totalUniqueScenarios = isAveraging ? 
+    const totalUniqueScenarios = isAveraging ?
         allModelsData[0]?._scenarioCount || 0 :
         [...new Set(allModelsData.map(d => d.scenario_class))].filter(Boolean).length;
-    
+
     // Group by model and timestamp to handle multiple points per timestamp
-    const modelTimestampGroups = d3.group(allModelsData, 
+    const modelTimestampGroups = d3.group(allModelsData,
         d => d.model,
         d => d.run_timestamp ? d.run_timestamp.getTime() : 0
     );
-    
+
     const colors = ['#667eea', '#48bb78', '#ed8936', '#e53e3e', '#9f7aea', '#38b2ac', '#d69e2e', '#805ad5', '#dd6b20'];
     let colorIndex = 0;
-    
+
     const traces = [];
     modelTimestampGroups.forEach((timestampGroups, modelName) => {
         // First pass: find the maximum number of data points for this model
@@ -354,20 +355,20 @@ function updateOverviewChart() {
             const values = group.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
             maxDataPoints = Math.max(maxDataPoints, values.length);
         });
-        
+
         const processedData = [];
-        
+
         timestampGroups.forEach((group, timestamp) => {
             if (timestamp === 0) return; // Skip invalid timestamps
-            
+
             const values = group.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
-            
+
             // Only include timestamps that have the maximum number of data points
             if (values.length > 0 && values.length === maxDataPoints) {
                 const meanValue = d3.mean(values);
                 const stdDev = values.length > 1 ? d3.deviation(values) : 0;
                 const scenarios = [...new Set(group.map(d => d.scenario_class))].filter(Boolean);
-                
+
                 processedData.push({
                     timestamp: new Date(timestamp),
                     mean: meanValue,
@@ -377,18 +378,18 @@ function updateOverviewChart() {
                 });
             }
         });
-        
+
         // Sort by timestamp
         processedData.sort((a, b) => a.timestamp - b.timestamp);
-        
+
         if (processedData.length > 0) {
             const color = colors[colorIndex % colors.length];
             const x = processedData.map(d => d.timestamp);
             const y = processedData.map(d => d.mean);
-            const text = processedData.map(d => 
+            const text = processedData.map(d =>
                 `${modelName}<br>Mean: ${d.mean.toFixed(4)}`
             );
-            
+
             traces.push({
                 x: x,
                 y: y,
@@ -402,28 +403,28 @@ function updateOverviewChart() {
             colorIndex++;
         }
     });
-    
+
     if (traces.length === 0) {
         chartDiv.innerHTML = '<div class="empty-state"><h3>No data to display</h3><p>No matching data found for the selected filters.</p></div>';
         return;
     }
-    
+
     const metricName = allModelsElements.metricSelect.value || 'Performance';
-    const scenarioInfo = isAveraging ? 
+    const scenarioInfo = isAveraging ?
         `Avg across ${totalUniqueScenarios} scenarios` :
         allModelsElements.scenarioSelect.value || 'All scenarios';
-    
+
     const layout = {
         title: {
             text: `${metricName} - All Models (${scenarioInfo})`,
             x: 0.5,
             font: { size: 16 }
         },
-        xaxis: { 
+        xaxis: {
             title: 'Date',
             type: 'date'
         },
-        yaxis: { 
+        yaxis: {
             title: metricName
         },
         margin: { t: 50, r: 50, b: 80, l: 80 },
@@ -437,33 +438,33 @@ function updateOverviewChart() {
             y: -0.2
         }
     };
-    
+
     const config = {
         responsive: true,
         displayModeBar: true,
         modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
     };
-    
+
     Plotly.newPlot(chartDiv, traces, layout, config);
 }
 
 function updateTimeSeriesChart() {
     const chartDiv = document.getElementById('timeSeriesChart');
-    
+
     if (individualModelData.length === 0) {
         chartDiv.innerHTML = '<div class="empty-state"><h3>No data to display</h3><p>No data found for the selected model and filters.</p></div>';
         return;
     }
-    
+
     const isAveraging = individualElements.scenarioSelect.value === '__AVERAGE__';
     const titlePrefix = isAveraging ? 'Average ' : '';
     const titleSuffix = isAveraging ? ' (across scenarios)' : '';
-    
+
     // Group by timestamp to handle multiple points per timestamp
-    const timestampGroups = d3.group(individualModelData, 
+    const timestampGroups = d3.group(individualModelData,
         d => d.run_timestamp ? d.run_timestamp.getTime() : 0
     );
-    
+
     // First pass: find the maximum number of data points across all timestamps
     let maxDataPoints = 0;
     timestampGroups.forEach((group, timestamp) => {
@@ -471,19 +472,19 @@ function updateTimeSeriesChart() {
         const values = group.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
         maxDataPoints = Math.max(maxDataPoints, values.length);
     });
-    
+
     // Process each timestamp group to get a single point
     const processedData = [];
     timestampGroups.forEach((group, timestamp) => {
         if (timestamp === 0) return; // Skip invalid timestamps
-        
+
         const values = group.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
-        
+
         // Only include timestamps that have the maximum number of data points
         if (values.length > 0 && values.length === maxDataPoints) {
             const meanValue = d3.mean(values);
             const stdDev = values.length > 1 ? d3.deviation(values) : 0;
-            
+
             processedData.push({
                 timestamp: new Date(timestamp),
                 mean: meanValue,
@@ -493,10 +494,10 @@ function updateTimeSeriesChart() {
             });
         }
     });
-    
+
     // Sort by timestamp
     processedData.sort((a, b) => a.timestamp - b.timestamp);
-    
+
     const x = processedData.map(d => d.timestamp);
     const y = processedData.map(d => d.mean);
     const text = processedData.map(d => {
@@ -506,7 +507,7 @@ function updateTimeSeriesChart() {
             return `Scenario: ${d.scenarios}<br>Mean: ${d.mean.toFixed(4)}`;
         }
     });
-    
+
     const traces = [{
         x: x,
         y: y,
@@ -517,21 +518,21 @@ function updateTimeSeriesChart() {
         line: { color: '#667eea', width: 3 },
         marker: { color: '#667eea', size: 8 }
     }];
-    
+
     const selectedMetric = individualElements.metricSelect.value;
     const chartTitle = `${titlePrefix}${selectedMetric || 'Metric'} - ${individualElements.modelSelect.value}${titleSuffix}`;
-    
+
     const layout = {
         title: {
             text: chartTitle,
             x: 0.5,
             font: { size: 16 }
         },
-        xaxis: { 
+        xaxis: {
             title: 'Date',
             type: 'date'
         },
-        yaxis: { 
+        yaxis: {
             title: selectedMetric || 'Value'
         },
         margin: { t: 50, r: 50, b: 100, l: 80 },
@@ -545,34 +546,34 @@ function updateTimeSeriesChart() {
             y: -0.25
         }
     };
-    
+
     const config = {
         responsive: true,
         displayModeBar: true,
         modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
     };
-    
+
     Plotly.newPlot(chartDiv, traces, layout, config);
 }
 
 function updateSummaryStats() {
     const statsDiv = document.getElementById('summaryStats');
-    
+
     if (individualModelData.length === 0) {
         statsDiv.innerHTML = '<div class="empty-state"><h3>No data available</h3><p>No data found for the selected model and filters.</p></div>';
         return;
     }
-    
+
     // Check if we're showing averaged data
     const isAveraging = individualElements.scenarioSelect.value === '__AVERAGE__';
-    
+
     // Calculate statistics
     const values = individualModelData.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
     const uniqueRuns = new Set(individualModelData.map(d => d.run_id || d.run)).size;
     const dateRange = d3.extent(individualModelData.map(d => d.run_timestamp)).filter(d => d);
-    
+
     let statsHtml = '<div class="stats-grid">';
-    
+
     // Add header explaining what we're showing for the selected model
     if (isAveraging) {
         const scenarioCount = individualModelData.length > 0 ? individualModelData[0]._scenarioCount : 0;
@@ -587,12 +588,12 @@ function updateSummaryStats() {
             <p>Performance statistics for ${individualElements.modelSelect.value} on the selected scenario.</p>
         </div>` + statsHtml;
     }
-    
+
     if (values.length > 0) {
         const mean = d3.mean(values);
         const latest = values[values.length - 1];
         const trend = values.length > 1 ? (latest > values[0] ? 'up' : latest < values[0] ? 'down' : 'stable') : 'stable';
-        
+
         statsHtml += `
             <div class="stat-card">
                 <div class="stat-value trend-${trend}">${latest.toFixed(4)}</div>
@@ -612,7 +613,7 @@ function updateSummaryStats() {
             </div>
         `;
     }
-    
+
     statsHtml += `
         <div class="stat-card">
             <div class="stat-value">${uniqueRuns}</div>
@@ -623,7 +624,7 @@ function updateSummaryStats() {
             <div class="stat-label">${isAveraging ? 'Avg Points' : 'Data Points'}</div>
         </div>
     `;
-    
+
     if (dateRange.length === 2 && dateRange[0] && dateRange[1]) {
         const daysDiff = Math.ceil((dateRange[1] - dateRange[0]) / (1000 * 60 * 60 * 24));
         statsHtml += `
@@ -633,7 +634,7 @@ function updateSummaryStats() {
             </div>
         `;
     }
-    
+
     // Add scenario count for averaging mode
     if (isAveraging && individualModelData.length > 0) {
         const scenarioCount = individualModelData[0]._scenarioCount;
@@ -644,20 +645,20 @@ function updateSummaryStats() {
             </div>
         `;
     }
-    
+
     statsHtml += '</div>';
-    
+
     statsDiv.innerHTML = statsHtml;
 }
 
 function updateComparisonChart() {
     const chartDiv = document.getElementById('comparisonChart');
-    
+
     if (individualModelData.length === 0) {
         chartDiv.innerHTML = '<div class="empty-state"><h3>No data to compare</h3><p>No data found for the selected model and filters.</p></div>';
         return;
     }
-    
+
     // Group data by date instead of by run_id
     const dateGroups = d3.group(individualModelData, d => {
         if (d.run_date) {
@@ -665,31 +666,31 @@ function updateComparisonChart() {
         }
         return 'Unknown Date';
     });
-    
+
     // Get the last 7 days for comparison
     const sortedDays = Array.from(dateGroups.entries())
         .filter(([dateStr, _]) => dateStr !== 'Unknown Date')
         .sort((a, b) => new Date(a[0]) - new Date(b[0]))
         .slice(-7); // Last 7 days
-    
+
     if (sortedDays.length === 0) {
         chartDiv.innerHTML = '<div class="empty-state"><h3>No dated data available</h3><p>Cannot create comparison chart without date information.</p></div>';
         return;
     }
-    
+
     const x = [];
     const y = [];
     const errorY = [];
     const text = [];
-    
+
     sortedDays.forEach(([dateStr, dayData]) => {
         const values = dayData.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
-        
+
         if (values.length > 0) {
             const meanValue = d3.mean(values);
             const stdDev = values.length > 1 ? d3.deviation(values) : 0;
             const date = new Date(dateStr);
-            
+
             x.push(date.toLocaleDateString());
             y.push(meanValue);
             errorY.push(stdDev);
@@ -700,7 +701,7 @@ function updateComparisonChart() {
             );
         }
     });
-    
+
     const trace = {
         x: x,
         y: y,
@@ -708,7 +709,7 @@ function updateComparisonChart() {
         type: 'scatter',
         mode: 'markers',
         name: 'Daily Average',
-        marker: { 
+        marker: {
             color: '#48bb78',
             size: 10,
             line: { color: '#38a169', width: 2 }
@@ -722,22 +723,22 @@ function updateComparisonChart() {
             width: 6
         }
     };
-    
+
     const isAveraging = individualElements.scenarioSelect.value === '__AVERAGE__';
-    const chartTitle = isAveraging ? 
-        'Daily Average Performance Comparison (±1 Std Dev, across scenarios)' : 
+    const chartTitle = isAveraging ?
+        'Daily Average Performance Comparison (±1 Std Dev, across scenarios)' :
         'Daily Performance Comparison (±1 Std Dev)';
-    
+
     const layout = {
         title: {
             text: chartTitle,
             x: 0.5,
             font: { size: 16 }
         },
-        xaxis: { 
+        xaxis: {
             title: 'Date'
         },
-        yaxis: { 
+        yaxis: {
             title: individualElements.metricSelect.value || 'Value'
         },
         margin: { t: 60, r: 50, b: 100, l: 80 },
@@ -745,25 +746,25 @@ function updateComparisonChart() {
         paper_bgcolor: 'white',
         showlegend: false
     };
-    
+
     const config = {
         responsive: true,
         displayModeBar: true,
         modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
     };
-    
+
     Plotly.newPlot(chartDiv, [trace], layout, config);
 }
 
 function updateDataTable() {
     const tableDiv = document.getElementById('dataTable');
     const limit = parseInt(individualElements.rowLimitSelect.value) || individualModelData.length;
-    
+
     if (individualModelData.length === 0) {
         tableDiv.innerHTML = '<div class="empty-state"><h3>No data to display</h3><p>No data found for the selected model and filters.</p></div>';
         return;
     }
-    
+
     // Sort by timestamp descending and limit rows
     const sortedData = [...individualModelData]
         .sort((a, b) => {
@@ -772,10 +773,10 @@ function updateDataTable() {
             return bTime - aTime;
         })
         .slice(0, limit);
-    
+
     // Check if we're in averaging mode to adjust columns
     const isAveraging = individualElements.scenarioSelect.value === '__AVERAGE__';
-    
+
     // Define columns to show
     const columns = [
         { key: 'model', label: 'Model' },
@@ -787,22 +788,22 @@ function updateDataTable() {
         { key: 'count', label: 'Count', numeric: true },
         { key: 'std', label: 'Std Dev', numeric: true, format: (d) => d !== undefined && d !== null ? d.toFixed(4) : '-' }
     ];
-    
+
     // Add scenario details column if in averaging mode
     if (isAveraging) {
-        columns.splice(2, 0, { 
-            key: '_scenarios', 
-            label: 'Scenarios Included', 
-            format: (d) => d ? (d.length > 50 ? d.substring(0, 50) + '...' : d) : '-' 
+        columns.splice(2, 0, {
+            key: '_scenarios',
+            label: 'Scenarios Included',
+            format: (d) => d ? (d.length > 50 ? d.substring(0, 50) + '...' : d) : '-'
         });
     }
-    
+
     let tableHtml = '<div class="data-table"><table><thead><tr>';
     columns.forEach(col => {
         tableHtml += `<th>${col.label}</th>`;
     });
     tableHtml += '</tr></thead><tbody>';
-    
+
     sortedData.forEach(row => {
         tableHtml += '<tr>';
         columns.forEach(col => {
@@ -813,8 +814,8 @@ function updateDataTable() {
         });
         tableHtml += '</tr>';
     });
-    
+
     tableHtml += '</tbody></table></div>';
-    
+
     tableDiv.innerHTML = tableHtml;
-} 
+}

@@ -75,4 +75,4 @@ jobs:
 - `serve.py` - Simple development server
 - `benchmark_summary.csv` - Your data (created automatically by `daily-bench extract`)
 
-That's it! No build process, no dependencies, just open and use. 
+That's it! No build process, no dependencies, just open and use.

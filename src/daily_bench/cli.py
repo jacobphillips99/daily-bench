@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from daily_bench.extractor import extract_results, extract_results_incremental, report
+from daily_bench import extractor
 
 
 def run_helm_lite() -> None:
@@ -16,31 +16,29 @@ def run_helm_lite() -> None:
     # Get the directory where this script is located
     current_dir = Path(__file__).parent
     runner_script = current_dir / "helm_lite" / "run_bench.sh"
-    
+
     if not runner_script.exists():
         print(f"Error: runner.sh not found at {runner_script}")
         sys.exit(1)
-    
+
     # Make sure the script is executable
     os.chmod(runner_script, 0o755)
-    
+
     # Change to the helm_lite directory to run the script
     original_cwd = os.getcwd()
     helm_lite_dir = current_dir / "helm_lite"
-    
+
     try:
         os.chdir(helm_lite_dir)
         print(f"Running HELM Lite benchmark from {helm_lite_dir}")
-        
+
         # Run the shell script
         result = subprocess.run(
-            ["bash", str(runner_script)],
-            check=False,
-            cwd=helm_lite_dir
+            ["bash", str(runner_script)], check=False, cwd=helm_lite_dir
         )
-        
+
         sys.exit(result.returncode)
-        
+
     except KeyboardInterrupt:
         print("\nBenchmark interrupted by user")
         sys.exit(130)
@@ -50,18 +48,28 @@ def run_helm_lite() -> None:
     finally:
         os.chdir(original_cwd)
 
-def run_results_extractor(results_location: Path, output_location: Path, incremental: bool = True) -> None:
-    """Run the results extractor function"""
+
+def run_results_extractor(
+    results_location: Path, output_location: Path, incremental: bool = True
+) -> None:
+    """Run the results extractor function."""
     if incremental:
-        data = extract_results_incremental(root=results_location, output_path=output_location)
-        print(f"Incremental extraction completed. Processed {data.get('new_runs_processed', 0)} new runs.")
+        data = extractor.extract_results_incremental(
+            root=results_location, output_path=output_location
+        )
+        print(
+            "Incremental extraction completed. ",
+            f"Processed {data.get('new_runs_processed', 0)} new runs.",
+        )
     else:
-        data = extract_results(root=results_location, output_path=output_location)
+        data = extractor.extract_results(
+            root=results_location, output_path=output_location
+        )
         print("Full extraction completed.")
-    
-    report(data)
+
+    extractor.report(data)
     print(f"Results extracted to {output_location}")
-    
+
     # Copy results to dashboard for easy access
     dashboard_csv = Path("dashboard/benchmark_summary.csv")
     if dashboard_csv.parent.exists():
@@ -70,37 +78,30 @@ def run_results_extractor(results_location: Path, output_location: Path, increme
 
 
 def main() -> None:
-    """Main CLI entry point with subcommands."""
+    """Execute the main CLI entry point with subcommands."""
     parser = argparse.ArgumentParser(
-        prog="daily-bench",
-        description="Daily benchmarking for LLMs"
+        prog="daily-bench", description="Daily benchmarking for LLMs"
     )
-    
+
     subparsers = parser.add_subparsers(
-        dest="command",
-        help="Available commands",
-        required=True
+        dest="command", help="Available commands", required=True
     )
-    
+
     # Add 'run' subcommand
-    run_parser = subparsers.add_parser(
-        "run",
-        help="Run the HELM Lite benchmark"
-    )
-    
+    _ = subparsers.add_parser("run", help="Run the HELM Lite benchmark")
+
     # Add 'extract' subcommand
     extract_parser = subparsers.add_parser(
-        "extract",
-        help="Extract results from the HELM Lite benchmark"
+        "extract", help="Extract results from the HELM Lite benchmark"
     )
     extract_parser.add_argument(
         "--full",
         action="store_true",
-        help="Perform full extraction instead of incremental (slower but processes all runs)"
+        help="Perform full extraction instead of incremental (slower but processes all runs)",
     )
-    
+
     args = parser.parse_args()
-    
+
     if args.command == "run":
         run_helm_lite()
     elif args.command == "extract":
@@ -115,4 +116,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main() 
+    main()

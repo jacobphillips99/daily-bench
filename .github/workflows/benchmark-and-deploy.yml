@@ -33,23 +33,23 @@ jobs:
     runs-on: ubuntu-latest
     # Only run benchmark if not deploy-only mode
     if: ${{ !inputs.deploy_only && (github.event_name == 'schedule' || inputs.run_benchmark) }}
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    
+
     - name: Install uv
       uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
         cache-dependency-glob: "uv.lock"
-    
+
     - name: Set up Python
       run: uv python install 3.12
-    
+
     - name: Install dependencies
       run: uv sync --locked
-    
+
     - name: Run daily-bench benchmark
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -57,12 +57,12 @@ jobs:
       run: |
         echo "Running daily-bench benchmark..."
         uv run daily-bench run
-    
+
     - name: Extract benchmark results
       run: |
         echo "Extracting benchmark results..."
         uv run daily-bench extract
-        
+
         # Copy results CSV to dashboard for deployment
         if [ -f "results/benchmark_summary.csv" ]; then
           echo "Copying benchmark_summary.csv to dashboard/"
@@ -71,7 +71,7 @@ jobs:
         else
           echo "No benchmark_summary.csv found in results/"
         fi
-    
+
     - name: Upload benchmark artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -80,15 +80,15 @@ jobs:
           results/
           dashboard/
         retention-days: 30
-    
+
     - name: Commit and push results
       run: |
         git config --local user.name "github-actions[bot]"
         git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-        
+
         # Add any new result files (dashboard/ files are ignored by gitignore)
         git add results/ || true
-        
+
         # Only commit if there are changes
         if ! git diff --staged --quiet; then
           git commit -m "Update benchmark results - $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
@@ -105,11 +105,11 @@ jobs:
     # Deploy runs after benchmark (if benchmark ran) or independently
     needs: [benchmark]
     if: always() && (needs.benchmark.result == 'success' || needs.benchmark.result == 'skipped')
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    
+
     # Download artifacts if benchmark ran in this workflow
     - name: Download benchmark artifacts
       if: needs.benchmark.result == 'success'
@@ -117,14 +117,14 @@ jobs:
       with:
         name: benchmark-results
         path: .
-    
+
     # For deploy-only mode, use existing files from repo
     - name: Use existing dashboard files
       if: needs.benchmark.result == 'skipped'
       run: |
         echo "Using existing dashboard files from repository"
         ls -la dashboard/ || echo "No dashboard directory found"
-        
+
         # Copy benchmark_summary.csv from results/ to dashboard/ if it exists
         if [ -f "results/benchmark_summary.csv" ]; then
           echo "Copying benchmark_summary.csv from results/ to dashboard/"
@@ -132,19 +132,19 @@ jobs:
         else
           echo "No benchmark_summary.csv found in results/ directory"
         fi
-        
+
         # Show what's in dashboard after copying
         echo "Dashboard contents after copying:"
         ls -la dashboard/ || echo "No dashboard directory found"
-    
+
     - name: Setup Pages
       uses: actions/configure-pages@v4
-    
+
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
         path: 'dashboard'
-    
+
     - name: Deploy to GitHub Pages
       id: deployment
-      uses: actions/deploy-pages@v4 
+      uses: actions/deploy-pages@v4

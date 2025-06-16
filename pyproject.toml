@@ -18,6 +18,7 @@ daily-bench = "daily_bench.cli:main"
 dev = [
   "ruff",
   "pytest",
+  "pre-commit",
 ]
 
 [tool.setuptools.packages.find]
