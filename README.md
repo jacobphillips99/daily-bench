@@ -2,11 +2,13 @@
 
 **Monitoring LLM API quality through automated benchmarking.**
 
+See the dashboard at [jacobphillips99.github.io/daily-bench](https://jacobphillips99.github.io/daily-bench).
+
 A lightweight tool built on HELM Lite that runs standardized benchmarks against LLM APIs and tracks performance over time. This helps detect when providers make undisclosed changes to their models.
 
 ## Why This Matters
 
-Recent evidence suggests that some LLM providers [quantize their models during peak US hours](https://x.com/secemp9/status/1931244386743894194) and make other undisclosed changes. Users deserve to know they're getting consistent quality from the APIs they pay for.
+Recent pseudo-evidence suggests that some LLM providers [quantize their models during peak US hours](https://x.com/secemp9/status/1931244386743894194) and make other undisclosed changes. Users deserve to know they're getting consistent quality from the APIs they pay for.
 
 ![Tweets about LLM API quality changes](assets/daily_bench_tweets.png)
 
