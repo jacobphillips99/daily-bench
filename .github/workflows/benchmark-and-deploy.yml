@@ -6,6 +6,10 @@ on:
     # - cron: '0 0,6,12,18 * * *'
     # for testing
     - cron: '0 15 * * *'
+  # Run deploy-only on push to main branch
+  push:
+    branches:
+      - main
   # Allow manual triggering
   workflow_dispatch:
     inputs:
@@ -33,8 +37,8 @@ concurrency:
 jobs:
   benchmark:
     runs-on: ubuntu-latest
-    # Only run benchmark if not deploy-only mode
-    if: ${{ !inputs.deploy_only && (github.event_name == 'schedule' || inputs.run_benchmark) }}
+    # Only run benchmark if not deploy-only mode AND not a push event
+    if: ${{ !inputs.deploy_only && github.event_name != 'push' && (github.event_name == 'schedule' || inputs.run_benchmark) }}
 
     steps:
     - name: Checkout repository
