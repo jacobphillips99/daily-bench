@@ -714,7 +714,7 @@ wheels = [
 [[package]]
 name = "crfm-helm"
 version = "0.5.5"
-source = { git = "https://github.com/jacobphillips99/helm.git?rev=4eff1d055434efd9dca6c0b4f3251f0ae459e183#4eff1d055434efd9dca6c0b4f3251f0ae459e183" }
+source = { git = "https://github.com/jacobphillips99/helm.git?rev=79f6c3538cdf31f93998568a7760243cd69d2a9e#79f6c3538cdf31f93998568a7760243cd69d2a9e" }
 dependencies = [
     { name = "bottle" },
     { name = "cattrs" },
@@ -841,7 +841,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "crfm-helm", extras = ["models"], git = "https://github.com/jacobphillips99/helm.git?rev=4eff1d055434efd9dca6c0b4f3251f0ae459e183" },
+    { name = "crfm-helm", extras = ["models"], git = "https://github.com/jacobphillips99/helm.git?rev=79f6c3538cdf31f93998568a7760243cd69d2a9e" },
     { name = "pandas" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
