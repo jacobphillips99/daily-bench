@@ -37,3 +37,12 @@ repos:
         - types-requests
         - types-setuptools
         - types-python-dateutil
+
+-   repo: local
+    hooks:
+      - id: uv-lock
+        name: Update uv.lock
+        entry: uv pip lock -o uv.lock
+        language: system
+        files: ^pyproject\.toml$
+        pass_filenames: false
