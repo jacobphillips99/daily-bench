@@ -4,7 +4,6 @@ on:
   schedule:
     # Run every 6 hours at 10am, 4pm, 10pm, 4am PT (00:00, 06:00, 12:00, 18:00 UTC)
     - cron: '0 0,6,12,18 * * *'
-    # we would like to add jitter here but can't add too much time due to github actions minute limit
     # for testing
     # - cron: '0 15 * * *'
   # Run deploy-only on push to main branch
@@ -44,6 +43,13 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Random delay for cron triggers
+      if: github.event_name == 'schedule'
+      run: |
+        SLEEP_TIME=$((RANDOM % 3601))
+        echo "Sleeping for $SLEEP_TIME seconds to distribute CRON load..."
+        sleep $SLEEP_TIME
 
     - name: Install uv
       uses: astral-sh/setup-uv@v5
