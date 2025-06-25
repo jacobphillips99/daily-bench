@@ -64,6 +64,11 @@ jobs:
     - name: Install dependencies
       run: uv sync --locked
 
+    - name: Write gcloud service account key
+      run: |
+        echo '${{ secrets.GCP_SA_KEY }}' > "$RUNNER_TEMP/gcp-sa.json"
+        echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/gcp-sa.json" >> "$GITHUB_ENV"
+
     - name: Run daily-bench benchmark
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -71,6 +76,10 @@ jobs:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         GOOGLE_CLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
+        GCLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
+        GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
+        GOOGLE_CLOUD_REGION: "us-central1"
+
       run: |
         echo "Running daily-bench benchmark..."
         uv run daily-bench run
