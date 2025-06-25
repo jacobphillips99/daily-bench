@@ -10,6 +10,7 @@ let individualModelData = [];
 const allModelsElements = {
     metricSelect: document.getElementById('allModelsMetricSelect'),
     scenarioSelect: document.getElementById('allModelsScenarioSelect'),
+    timePeriodSelect: document.getElementById('allModelsTimePeriodSelect'),
     refreshBtn: document.getElementById('refreshBtn')
 };
 
@@ -17,6 +18,7 @@ const individualElements = {
     modelSelect: document.getElementById('individualModelSelect'),
     scenarioSelect: document.getElementById('individualScenarioSelect'),
     metricSelect: document.getElementById('individualMetricSelect'),
+    timePeriodSelect: document.getElementById('individualTimePeriodSelect'),
     rowLimitSelect: document.getElementById('rowLimitSelect')
 };
 
@@ -38,11 +40,13 @@ function setupEventListeners() {
     // All models section listeners
     allModelsElements.metricSelect.addEventListener('change', updateAllModelsVisualization);
     allModelsElements.scenarioSelect.addEventListener('change', updateAllModelsVisualization);
+    allModelsElements.timePeriodSelect.addEventListener('change', updateAllModelsScatterplot);
 
     // Individual model section listeners
     individualElements.modelSelect.addEventListener('change', updateIndividualModelVisualization);
     individualElements.scenarioSelect.addEventListener('change', updateIndividualModelVisualization);
     individualElements.metricSelect.addEventListener('change', updateIndividualModelVisualization);
+    individualElements.timePeriodSelect.addEventListener('change', updateIndividualScatterplot);
     individualElements.rowLimitSelect.addEventListener('change', updateDataTable);
 }
 
@@ -207,6 +211,7 @@ function updateAllModelsVisualization() {
     }
 
     updateOverviewChart();
+    updateAllModelsScatterplot();
 }
 
 function updateIndividualModelVisualization() {
@@ -233,6 +238,7 @@ function updateIndividualModelVisualization() {
     }
 
     updateTimeSeriesChart();
+    updateIndividualScatterplot();
     updateSummaryStats();
     updateComparisonChart();
     updateDataTable();
@@ -818,4 +824,242 @@ function updateDataTable() {
     tableHtml += '</tbody></table></div>';
 
     tableDiv.innerHTML = tableHtml;
+}
+
+function updateAllModelsScatterplot() {
+    const chartDiv = document.getElementById('allModelsScatterChart');
+
+    if (!isDataLoaded || allModelsData.length === 0) {
+        chartDiv.innerHTML = '<div class="empty-state"><h3>No data to display</h3><p>Select filters to view all models scatterplot.</p></div>';
+        return;
+    }
+
+    const timePeriod = allModelsElements.timePeriodSelect.value;
+    const processedData = processDataForScatterplot(allModelsData, timePeriod);
+
+    if (processedData.length === 0) {
+        chartDiv.innerHTML = '<div class="empty-state"><h3>No data to display</h3><p>No matching data found for the selected filters.</p></div>';
+        return;
+    }
+
+    // Group by model for different colors
+    const modelGroups = d3.group(processedData, d => d.model);
+    const colors = ['#667eea', '#48bb78', '#ed8936', '#e53e3e', '#9f7aea', '#38b2ac', '#d69e2e', '#805ad5', '#dd6b20'];
+    let colorIndex = 0;
+
+    const traces = [];
+    modelGroups.forEach((modelData, modelName) => {
+        const color = colors[colorIndex % colors.length];
+
+        traces.push({
+            x: modelData.map(d => d.x),
+            y: modelData.map(d => d.y),
+            text: modelData.map(d => d.hoverText),
+            mode: 'markers',
+            type: 'scatter',
+            name: modelName,
+            marker: {
+                color: color,
+                size: 6,
+                opacity: 0.6,
+                line: { color: color, width: 1 }
+            }
+        });
+        colorIndex++;
+    });
+
+    const metricName = allModelsElements.metricSelect.value || 'Performance';
+    const scenarioInfo = allModelsElements.scenarioSelect.value === '__AVERAGE__' ?
+        'Avg across scenarios' :
+        allModelsElements.scenarioSelect.value || 'All scenarios';
+
+    const timePeriodLabel = timePeriod === 'week' ? 'Weekly Pattern' : 'Daily Pattern';
+
+    // Configure x-axis based on time period
+    let xAxisConfig;
+    if (timePeriod === 'week') {
+        xAxisConfig = {
+            title: 'Day of Week',
+            type: 'linear',
+            tickmode: 'array',
+            tickvals: [0, 1, 2, 3, 4, 5, 6, 7],
+            ticktext: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            range: [0, 7]
+        };
+    } else {
+        xAxisConfig = {
+            title: 'Time of Day (Hours)',
+            type: 'linear',
+            range: [0, 24],
+            tickmode: 'linear',
+            tick0: 0,
+            dtick: 4
+        };
+    }
+
+    const layout = {
+        title: {
+            text: `${metricName} - All Models (${scenarioInfo}, ${timePeriodLabel})`,
+            x: 0.5,
+            font: { size: 16 }
+        },
+        xaxis: xAxisConfig,
+        yaxis: {
+            title: metricName
+        },
+        margin: { t: 50, r: 50, b: 80, l: 80 },
+        plot_bgcolor: '#f8f9fa',
+        paper_bgcolor: 'white',
+        showlegend: true,
+        legend: {
+            orientation: 'h',
+            x: 0.5,
+            xanchor: 'center',
+            y: -0.2
+        }
+    };
+
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+    };
+
+    Plotly.newPlot(chartDiv, traces, layout, config);
+}
+
+function updateIndividualScatterplot() {
+    const chartDiv = document.getElementById('individualScatterChart');
+
+    if (individualModelData.length === 0) {
+        chartDiv.innerHTML = '<div class="empty-state"><h3>No data to display</h3><p>No data found for the selected model and filters.</p></div>';
+        return;
+    }
+
+    const timePeriod = individualElements.timePeriodSelect.value;
+    const processedData = processDataForScatterplot(individualModelData, timePeriod);
+
+    if (processedData.length === 0) {
+        chartDiv.innerHTML = '<div class="empty-state"><h3>No data to display</h3><p>No matching data found for the selected filters.</p></div>';
+        return;
+    }
+
+    const traces = [{
+        x: processedData.map(d => d.x),
+        y: processedData.map(d => d.y),
+        text: processedData.map(d => d.hoverText),
+        mode: 'markers',
+        type: 'scatter',
+        name: individualElements.modelSelect.value,
+        marker: {
+            color: '#667eea',
+            size: 8,
+            opacity: 0.7,
+            line: { color: '#667eea', width: 1 }
+        }
+    }];
+
+    const isAveraging = individualElements.scenarioSelect.value === '__AVERAGE__';
+    const titlePrefix = isAveraging ? 'Average ' : '';
+    const titleSuffix = isAveraging ? ' (across scenarios)' : '';
+    const timePeriodLabel = timePeriod === 'week' ? 'Weekly Pattern' : 'Daily Pattern';
+
+    // Configure x-axis based on time period
+    let xAxisConfig;
+    if (timePeriod === 'week') {
+        xAxisConfig = {
+            title: 'Day of Week',
+            type: 'linear',
+            tickmode: 'array',
+            tickvals: [0, 1, 2, 3, 4, 5, 6, 7],
+            ticktext: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            range: [0, 7]
+        };
+    } else {
+        xAxisConfig = {
+            title: 'Time of Day (Hours)',
+            type: 'linear',
+            range: [0, 24],
+            tickmode: 'linear',
+            tick0: 0,
+            dtick: 4
+        };
+    }
+
+    const selectedMetric = individualElements.metricSelect.value;
+    const chartTitle = `${titlePrefix}${selectedMetric || 'Metric'} - ${individualElements.modelSelect.value}${titleSuffix} (${timePeriodLabel})`;
+
+    const layout = {
+        title: {
+            text: chartTitle,
+            x: 0.5,
+            font: { size: 16 }
+        },
+        xaxis: xAxisConfig,
+        yaxis: {
+            title: selectedMetric || 'Value'
+        },
+        margin: { t: 50, r: 50, b: 100, l: 80 },
+        plot_bgcolor: '#f8f9fa',
+        paper_bgcolor: 'white',
+        showlegend: false
+    };
+
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
+    };
+
+    Plotly.newPlot(chartDiv, traces, layout, config);
+}
+
+function processDataForScatterplot(data, timePeriod) {
+    const processedData = [];
+
+    if (timePeriod === 'week') {
+        // Weekly view - show day of week + time of day (0-7 range)
+        data.forEach(d => {
+            if (d.run_timestamp && d.mean !== undefined && d.mean !== null && !isNaN(d.mean)) {
+                const date = new Date(d.run_timestamp);
+                const dayOfWeek = date.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+                const hourOfDay = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600; // Decimal hours
+                const weekPosition = dayOfWeek + (hourOfDay / 24); // 0.0 = Sun 00:00, 1.0 = Mon 00:00, etc.
+
+                const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+                processedData.push({
+                    x: weekPosition,
+                    y: d.mean,
+                    model: d.model,
+                    hoverText: `${dayNames[dayOfWeek]} ${date.toLocaleTimeString()}<br>` +
+                             `Model: ${d.model}<br>` +
+                             `Value: ${d.mean.toFixed(4)}<br>` +
+                             `Scenario: ${d.scenario_class}<br>` +
+                             `Original Date: ${new Date(d.run_timestamp).toLocaleDateString()}`
+                });
+            }
+        });
+    } else {
+        // Daily view - collapse all data to time of day (0-24 hours)
+        data.forEach(d => {
+            if (d.run_timestamp && d.mean !== undefined && d.mean !== null && !isNaN(d.mean)) {
+                const date = new Date(d.run_timestamp);
+                const hourOfDay = date.getHours() + date.getMinutes() / 60 + date.getSeconds() / 3600; // Decimal hours
+
+                processedData.push({
+                    x: hourOfDay,
+                    y: d.mean,
+                    model: d.model,
+                    hoverText: `Time: ${date.toLocaleTimeString()}<br>` +
+                             `Model: ${d.model}<br>` +
+                             `Value: ${d.mean.toFixed(4)}<br>` +
+                             `Scenario: ${d.scenario_class}<br>` +
+                             `Original Date: ${new Date(d.run_timestamp).toLocaleDateString()}`
+                });
+            }
+        });
+    }
+
+    return processedData;
 }

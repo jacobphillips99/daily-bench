@@ -45,10 +45,11 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Random delay for cron triggers
+      # random delay over 6 hours to test different times of day
       if: github.event_name == 'schedule'
       run: |
-        SLEEP_TIME=$((RANDOM % 3601))
-        echo "Sleeping for $SLEEP_TIME seconds to distribute CRON load..."
+        SLEEP_TIME=$((RANDOM % 21601))
+        echo "Sleeping for $SLEEP_TIME seconds for daily-bench jitter..."
         sleep $SLEEP_TIME
 
     - name: Install uv

@@ -2,7 +2,7 @@
 
 **Monitoring LLM API quality through automated benchmarking.**
 
-See the dashboard at [jacobphillips99.github.io/daily-bench](https://jacobphillips99.github.io/daily-bench).
+See the dashboard at [https://jacobphillips99.github.io/daily-bench](https://jacobphillips99.github.io/daily-bench).
 
 A lightweight tool built on HELM Lite that runs standardized benchmarks against LLM APIs and tracks performance over time. This helps detect when providers make undisclosed changes to their models.
 

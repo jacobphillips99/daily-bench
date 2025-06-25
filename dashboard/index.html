@@ -47,7 +47,20 @@
             </div>
 
             <div class="overview-chart-container">
+                <h3>📈 Performance Timeline</h3>
                 <div id="overviewChart"></div>
+            </div>
+
+            <div class="scatterplot-chart-container">
+                <h3>⚡ Performance Distribution Over Time</h3>
+                <div class="chart-controls">
+                    <label for="allModelsTimePeriodSelect">Time Period:</label>
+                    <select id="allModelsTimePeriodSelect">
+                        <option value="day">Daily View</option>
+                        <option value="week">Weekly View</option>
+                    </select>
+                </div>
+                <div id="allModelsScatterChart"></div>
             </div>
         </section>
 
@@ -83,22 +96,34 @@
 
             <div class="dashboard individual-model-dashboard">
                 <div class="chart-container">
-                    <h3>Performance Over Time</h3>
+                    <h3>📈 Performance Over Time</h3>
                     <div id="timeSeriesChart"></div>
                 </div>
 
+                <div class="scatterplot-container">
+                    <h3>⚡ Performance Distribution</h3>
+                    <div class="chart-controls">
+                        <label for="individualTimePeriodSelect">Time Period:</label>
+                        <select id="individualTimePeriodSelect">
+                            <option value="day">Daily View</option>
+                            <option value="week">Weekly View</option>
+                        </select>
+                    </div>
+                    <div id="individualScatterChart"></div>
+                </div>
+
                 <div class="stats-container">
-                    <h3>Summary Statistics</h3>
+                    <h3>📊 Summary Statistics</h3>
                     <div id="summaryStats"></div>
                 </div>
 
                 <div class="comparison-container">
-                    <h3>Recent Performance Comparison</h3>
+                    <h3>📋 Recent Performance Comparison</h3>
                     <div id="comparisonChart"></div>
                 </div>
 
                 <div class="data-table-container">
-                    <h3>Raw Data</h3>
+                    <h3>📄 Raw Data</h3>
                     <div class="table-controls">
                         <label>
                             Show last:
