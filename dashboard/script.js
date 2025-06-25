@@ -861,8 +861,7 @@ function updateAllModelsScatterplot() {
             marker: {
                 color: color,
                 size: 6,
-                opacity: 0.6,
-                line: { color: color, width: 1 }
+                opacity: 0.6
             }
         });
         colorIndex++;
@@ -897,6 +896,11 @@ function updateAllModelsScatterplot() {
         };
     }
 
+    // 🔧  Hide the zero-line / axis line
+    xAxisConfig.zeroline = false;
+    xAxisConfig.showline = false;
+    xAxisConfig.linecolor = 'rgba(0,0,0,0)';
+
     const layout = {
         title: {
             text: `${metricName} - All Models (${scenarioInfo}, ${timePeriodLabel})`,
@@ -905,7 +909,10 @@ function updateAllModelsScatterplot() {
         },
         xaxis: xAxisConfig,
         yaxis: {
-            title: metricName
+            title: metricName,
+            linecolor: 'rgba(0,0,0,0)',  // Make y-axis line transparent
+            linewidth: 0,                 // Remove y-axis line width
+            showline: false              // Explicitly hide the y-axis line
         },
         margin: { t: 50, r: 50, b: 80, l: 80 },
         plot_bgcolor: '#f8f9fa',
@@ -954,8 +961,7 @@ function updateIndividualScatterplot() {
         marker: {
             color: '#667eea',
             size: 8,
-            opacity: 0.7,
-            line: { color: '#667eea', width: 1 }
+            opacity: 0.7
         }
     }];
 
@@ -986,6 +992,11 @@ function updateIndividualScatterplot() {
         };
     }
 
+    // 🔧  Hide the zero-line / axis line
+    xAxisConfig.zeroline = false;
+    xAxisConfig.showline = false;
+    xAxisConfig.linecolor = 'rgba(0,0,0,0)';
+
     const selectedMetric = individualElements.metricSelect.value;
     const chartTitle = `${titlePrefix}${selectedMetric || 'Metric'} - ${individualElements.modelSelect.value}${titleSuffix} (${timePeriodLabel})`;
 
@@ -997,7 +1008,10 @@ function updateIndividualScatterplot() {
         },
         xaxis: xAxisConfig,
         yaxis: {
-            title: selectedMetric || 'Value'
+            title: selectedMetric || 'Value',
+            linecolor: 'rgba(0,0,0,0)',  // Make y-axis line transparent
+            linewidth: 0,                 // Remove y-axis line width
+            showline: false              // Explicitly hide the y-axis line
         },
         margin: { t: 50, r: 50, b: 100, l: 80 },
         plot_bgcolor: '#f8f9fa',

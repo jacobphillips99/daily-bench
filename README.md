@@ -46,6 +46,9 @@ source .venv/bin/activate
 ```
 </details>
 
+Notes:
+- To use Gemini models, you need to follow the instructions at [crfm-helm credentials](https://crfm-helm.readthedocs.io/en/latest/credentials/). TODO TODO TODO FIXME. need to request access on HF to gemma2b -- just acknowledge ToS?
+
 ## Usage
 ```bash
 # Run benchmarks (uses HELM Lite under the hood)
