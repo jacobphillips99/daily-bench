@@ -76,10 +76,9 @@ jobs:
       run: |
         echo "Checking gcloud authentication status..."
         gcloud auth list
-        echo "Current gcloud configuration:"
-        gcloud config list
         echo "Current project: $(gcloud config get-value project)"
-        echo "Authenticated account can access project: $(gcloud projects describe ${{ secrets.GOOGLE_CLOUD_PROJECT }} --format='value(projectId)' 2>/dev/null || echo 'FAILED')"
+        echo "Testing project access..."
+        gcloud projects describe ${{ secrets.GOOGLE_CLOUD_PROJECT }} --format='value(projectId)' || echo "Project access failed"
 
     - name: Run daily-bench benchmark
       env:
