@@ -64,10 +64,22 @@ jobs:
     - name: Install dependencies
       run: uv sync --locked
 
-    - name: Write gcloud service account key
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Verify Google Cloud authentication
       run: |
-        echo '${{ secrets.GCP_SA_KEY }}' > "$RUNNER_TEMP/gcp-sa.json"
-        echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/gcp-sa.json" >> "$GITHUB_ENV"
+        echo "Checking gcloud authentication status..."
+        gcloud auth list
+        echo "Current gcloud configuration:"
+        gcloud config list
+        echo "Current project: $(gcloud config get-value project)"
+        echo "Authenticated account can access project: $(gcloud projects describe ${{ secrets.GOOGLE_CLOUD_PROJECT }} --format='value(projectId)' 2>/dev/null || echo 'FAILED')"
 
     - name: Run daily-bench benchmark
       env:
@@ -77,9 +89,7 @@ jobs:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         GOOGLE_CLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
         GCLOUD_PROJECT: ${{ secrets.GOOGLE_CLOUD_PROJECT }}
-        GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
         GOOGLE_CLOUD_REGION: "us-central1"
-
       run: |
         echo "Running daily-bench benchmark..."
         uv run daily-bench run
