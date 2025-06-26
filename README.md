@@ -46,8 +46,73 @@ source .venv/bin/activate
 ```
 </details>
 
-Notes:
-- To use Gemini models, you need to follow the instructions at [crfm-helm credentials](https://crfm-helm.readthedocs.io/en/latest/credentials/). TODO TODO TODO FIXME. need to request access on HF to gemma2b -- just acknowledge ToS?
+## Google Cloud Setup for Gemini Models
+
+<details>
+<summary>Click to expand</summary>
+
+To use Gemini models via Vertex AI, you need to set up Google Cloud authentication:
+
+### 1. Create a Service Account
+
+```bash
+# Set your Google Cloud project ID
+export PROJECT_ID="your-project-id"
+
+# Create a service account
+gcloud iam service-accounts create daily-bench-sa \
+    --description="Service account for daily-bench GitHub Actions" \
+    --display-name="Daily Bench Service Account"
+```
+
+### 2. Grant Required Permissions
+
+```bash
+# Grant Vertex AI permissions
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:daily-bench-sa@$PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/aiplatform.user"
+
+# Optional: Grant additional permissions if needed
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:daily-bench-sa@$PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/ml.developer"
+```
+
+### 3. Create and Download Service Account Key
+
+```bash
+# Create and download the service account key
+gcloud iam service-accounts keys create ~/daily-bench-key.json \
+    --iam-account=daily-bench-sa@$PROJECT_ID.iam.gserviceaccount.com
+```
+
+### 4. Set Up GitHub Secrets
+
+In your GitHub repository settings, add these secrets:
+
+- `GCP_SA_KEY`: The complete contents of the `~/daily-bench-key.json` file
+- `GOOGLE_CLOUD_PROJECT`: Your Google Cloud project ID
+
+### 5. Enable Required APIs
+
+```bash
+# Enable Vertex AI API
+gcloud services enable aiplatform.googleapis.com
+
+# Enable other required APIs
+gcloud services enable compute.googleapis.com
+gcloud services enable storage.googleapis.com
+```
+
+**Note:** You may also need to enable the Cloud Resource Manager API via the [Google Cloud Console](https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com) if you encounter authentication errors.
+
+**Important Notes:**
+- Do NOT use your `~/.config/gcloud/application_default_credentials.json` file - this contains user OAuth credentials, not service account credentials
+- The service account key JSON should have `"type": "service_account"` in it
+- Keep your service account key secure and never commit it to version control
+
+</details>
 
 ## Usage
 ```bash
