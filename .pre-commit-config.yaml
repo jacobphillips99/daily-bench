@@ -42,7 +42,7 @@ repos:
     hooks:
       - id: uv-lock
         name: Update uv.lock
-        entry: uv pip lock -o uv.lock
+        entry: uv lock
         language: system
         files: ^pyproject\.toml$
         pass_filenames: false

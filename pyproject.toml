@@ -7,7 +7,7 @@ authors = [
     { name = "Jacob Phillips", email = "jacob.phillips8905@gmail.com" }
 ]
 dependencies = [
-    "crfm-helm[models] @ git+https://github.com/jacobphillips99/helm.git@79f6c3538cdf31f93998568a7760243cd69d2a9e",
+    "crfm-helm[models] @ git+https://github.com/jacobphillips99/helm.git@6b915985527323023cb571608f1bea738a89ba94",
     "pandas",
 ]
 

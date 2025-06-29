@@ -127,6 +127,13 @@ jobs:
         # Only commit if there are changes
         if ! git diff --staged --quiet; then
           git commit -m "Update benchmark results - $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+
+          # Pull latest changes and rebase before pushing
+          git pull --rebase origin main || {
+            echo "Rebase failed, trying merge strategy"
+            git pull origin main
+          }
+
           git push
         else
           echo "No changes to commit"
