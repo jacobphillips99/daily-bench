@@ -22,9 +22,10 @@ python -m http.server 8000
 
 **Option 3: Use the included server script**
 ```bash
-cd dashboard
-python serve.py
-# Opens automatically in browser at http://localhost:8000
+# From the project root, choose ONE of the following:
+python dashboard/serve.py      # if your virtual environment is activated
+uv run dashboard/serve.py      # if you prefer not to activate the venv
+# The dashboard will open automatically at http://localhost:8000
 ```
 
 ### Data Setup
@@ -35,37 +36,19 @@ python serve.py
 
 ## GitHub Pages Deployment
 
-### Method 1: Simple Upload
-1. Copy the `dashboard` folder contents to your GitHub repo
-2. Go to Settings → Pages → Select source branch
-3. Your site will be at `https://username.github.io/repo-name`
+Publishing the dashboard is automated for you!
+The repository already includes a GitHub Actions workflow at
+`.github/workflows/benchmark-and-deploy.yml` that:
 
-### Method 2: Subdirectory
-1. Keep dashboard in a subfolder
-2. Set GitHub Pages source to the `dashboard` folder
-3. Your site will be at `https://username.github.io/repo-name`
+1. Runs the scheduled (or manual) benchmarks.
+2. Copies the generated `benchmark_summary.csv` into `dashboard/`.
+3. Deploys the site to GitHub Pages.
 
-### Method 3: Automated (with GitHub Actions)
-Create `.github/workflows/dashboard.yml`:
-```yaml
-name: Deploy Dashboard
-on:
-  push:
-    paths: ['results/**', 'dashboard/**']
+To enable it, open your repository **Settings → Pages** and set the source to
+**GitHub Actions**. Commit your changes and the workflow will handle the rest.
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Copy results to dashboard
-        run: cp results/benchmark_summary.csv dashboard/
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: dashboard
-```
+Prefer manual deployment? Just copy the `dashboard/` folder (including
+`benchmark_summary.csv`) to the branch you've configured for Pages.
 
 ## Files
 

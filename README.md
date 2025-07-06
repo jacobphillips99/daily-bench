@@ -43,6 +43,11 @@ uv sync
 # activate uv env
 source .venv/bin/activate
 # or prepend commands with `uv run`
+
+# Install the package in editable mode (so the CLI is on PATH)
+uv pip install -e .
+# or
+pip install -e .
 ```
 </details>
 
@@ -94,16 +99,6 @@ In your GitHub repository settings, add these secrets:
 - `GCP_SA_KEY`: The complete contents of the `~/daily-bench-key.json` file
 - `GOOGLE_CLOUD_PROJECT`: Your Google Cloud project ID
 
-### 5. Enable Required APIs
-
-```bash
-# Enable Vertex AI API
-gcloud services enable aiplatform.googleapis.com
-
-# Enable other required APIs
-gcloud services enable compute.googleapis.com
-gcloud services enable storage.googleapis.com
-```
 
 **Note:** You may also need to enable the Cloud Resource Manager API via the [Google Cloud Console](https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com) if you encounter authentication errors.
 
