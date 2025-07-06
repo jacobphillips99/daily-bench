@@ -45,10 +45,10 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Random delay for cron triggers
-      # random delay over 6 hours to test different times of day
+      # random delay over 5.5 hours (6 hours - 30 minutes for workflow run time) to test different times in interval
       if: github.event_name == 'schedule'
       run: |
-        SLEEP_TIME=$((RANDOM % 21601))
+        SLEEP_TIME=$((RANDOM % 19801))
         echo "Sleeping for $SLEEP_TIME seconds for daily-bench jitter..."
         sleep $SLEEP_TIME
 
