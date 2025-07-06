@@ -8,6 +8,7 @@ let individualModelData = [];
 
 // DOM elements for both sections
 const allModelsElements = {
+    providerSelect: document.getElementById('allModelsProviderSelect'),
     metricSelect: document.getElementById('allModelsMetricSelect'),
     scenarioSelect: document.getElementById('allModelsScenarioSelect'),
     timePeriodSelect: document.getElementById('allModelsTimePeriodSelect'),
@@ -38,6 +39,7 @@ function setupEventListeners() {
     allModelsElements.refreshBtn.addEventListener('click', loadDefaultData);
 
     // All models section listeners
+    allModelsElements.providerSelect.addEventListener('change', updateAllModelsVisualization);
     allModelsElements.metricSelect.addEventListener('change', updateAllModelsVisualization);
     allModelsElements.scenarioSelect.addEventListener('change', updateAllModelsVisualization);
     allModelsElements.timePeriodSelect.addEventListener('change', updateAllModelsScatterplot);
@@ -136,13 +138,25 @@ function processCSVData(csvText) {
     sharedElements.lastUpdated.textContent = new Date().toLocaleString();
 }
 
+function extractProvider(modelName) {
+    if (!modelName || typeof modelName !== 'string') {
+        return 'Unknown';
+    }
+    const slashIndex = modelName.indexOf('/');
+    return slashIndex !== -1 ? modelName.substring(0, slashIndex) : 'Unknown';
+}
+
+
+
 function updateAllFilters() {
     // Get unique values for each filter
     const models = [...new Set(allData.map(d => d.model))].filter(Boolean).sort();
+    const providers = [...new Set(models.map(model => extractProvider(model)))].filter(Boolean).sort();
     const scenarios = [...new Set(allData.map(d => d.scenario_class))].filter(Boolean).sort();
     const metrics = [...new Set(allData.map(d => d.metric_name))].filter(Boolean).sort();
 
     // Update all models section options
+    updateSelectOptions(allModelsElements.providerSelect, providers, true, false); // Include "All" option for providers
     updateSelectOptions(allModelsElements.metricSelect, metrics);
     updateSelectOptions(allModelsElements.scenarioSelect, scenarios, false, true); // Include "All" option for scenarios
 
@@ -172,7 +186,11 @@ function updateSelectOptions(selectElement, options, includeAll = false, isScena
 
     // Add default option
     if (includeAll) {
-        selectElement.appendChild(new Option(isScenario ? 'All scenarios' : 'All splits', ''));
+        if (selectElement.id === 'allModelsProviderSelect') {
+            selectElement.appendChild(new Option('All providers', ''));
+        } else {
+            selectElement.appendChild(new Option(isScenario ? 'All scenarios' : 'All splits', ''));
+        }
     } else if (selectElement.id === 'individualModelSelect') {
         selectElement.appendChild(new Option('Choose a model to analyze...', ''));
     } else {
@@ -197,9 +215,17 @@ function updateSelectOptions(selectElement, options, includeAll = false, isScena
 function updateAllModelsVisualization() {
     if (!isDataLoaded) return;
 
-    // Filter data for all models section - no model filtering, always show all models
+    // Filter data for all models section
     allModelsData = allData.filter(row => {
+        // Filter by metric
         if (allModelsElements.metricSelect.value && row.metric_name !== allModelsElements.metricSelect.value) return false;
+
+        // Filter by provider
+        if (allModelsElements.providerSelect.value) {
+            const modelProvider = extractProvider(row.model);
+            if (modelProvider !== allModelsElements.providerSelect.value) return false;
+        }
+
         return true;
     });
 
@@ -419,10 +445,12 @@ function updateOverviewChart() {
     const scenarioInfo = isAveraging ?
         `Avg across ${totalUniqueScenarios} scenarios` :
         allModelsElements.scenarioSelect.value || 'All scenarios';
+    const providerInfo = allModelsElements.providerSelect.value ?
+        ` (${allModelsElements.providerSelect.value} models)` : '';
 
     const layout = {
         title: {
-            text: `${metricName} - All Models (${scenarioInfo})`,
+            text: `${metricName} - All Models${providerInfo} (${scenarioInfo})`,
             x: 0.5,
             font: { size: 16 }
         },
@@ -871,6 +899,8 @@ function updateAllModelsScatterplot() {
     const scenarioInfo = allModelsElements.scenarioSelect.value === '__AVERAGE__' ?
         'Avg across scenarios' :
         allModelsElements.scenarioSelect.value || 'All scenarios';
+    const providerInfo = allModelsElements.providerSelect.value ?
+        ` (${allModelsElements.providerSelect.value} models)` : '';
 
     const timePeriodLabel = timePeriod === 'week' ? 'Weekly Pattern' : 'Daily Pattern';
 
@@ -903,7 +933,7 @@ function updateAllModelsScatterplot() {
 
     const layout = {
         title: {
-            text: `${metricName} - All Models (${scenarioInfo}, ${timePeriodLabel})`,
+            text: `${metricName} - All Models${providerInfo} (${scenarioInfo}, ${timePeriodLabel})`,
             x: 0.5,
             font: { size: 16 }
         },
