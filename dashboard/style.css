@@ -221,10 +221,11 @@ section {
     transform: translateY(-1px);
 }
 
-/* Chart Containers */
+/* Chart Containers - Enhanced Mobile Support */
 .overview-chart-container,
 .scatterplot-chart-container {
     padding: 25px;
+    width: 100%;
 }
 
 .overview-chart-container {
@@ -246,10 +247,14 @@ section {
 }
 
 #overviewChart,
-#allModelsScatterChart {
+#allModelsScatterChart,
+#timeSeriesChart,
+#individualScatterChart,
+#comparisonChart {
     min-height: 400px;
     border-radius: 8px;
-    width: 100%;
+    width: 100% !important;
+    height: auto !important;
 }
 
 /* Dashboard */
@@ -259,6 +264,7 @@ section {
     grid-template-columns: 1fr;
     padding: 25px;
     border-radius: 0 0 12px 12px;
+    width: 100%;
 }
 
 .chart-container,
@@ -270,6 +276,8 @@ section {
     padding: 25px;
     border-radius: 12px;
     border: 1px solid #e2e8f0;
+    width: 100%;
+    overflow: hidden; /* Prevent overflow */
 }
 
 .chart-container h3,
@@ -582,6 +590,9 @@ footer a:hover {
     .comparison-container,
     .data-table-container {
         padding: 15px;
+        margin: 0;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     #overviewChart,
@@ -589,7 +600,26 @@ footer a:hover {
     #timeSeriesChart,
     #individualScatterChart,
     #comparisonChart {
-        min-height: 300px;
+        min-height: 300px !important;
+        height: 300px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Ensure chart divs take full width */
+    #overviewChart > div,
+    #allModelsScatterChart > div,
+    #timeSeriesChart > div,
+    #individualScatterChart > div,
+    #comparisonChart > div {
+        width: 100% !important;
+    }
+
+    /* Force Plotly containers to be responsive */
+    .js-plotly-plot,
+    .plotly-graph-div {
+        width: 100% !important;
+        height: auto !important;
     }
 
     .stats-grid {
@@ -703,7 +733,19 @@ footer a:hover {
     #timeSeriesChart,
     #individualScatterChart,
     #comparisonChart {
-        min-height: 350px;
+        min-height: 350px !important;
+        height: 350px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* Ensure chart divs take full width */
+    #overviewChart > div,
+    #allModelsScatterChart > div,
+    #timeSeriesChart > div,
+    #individualScatterChart > div,
+    #comparisonChart > div {
+        width: 100% !important;
     }
 
     .chart-controls select,
@@ -805,7 +847,9 @@ footer a:hover {
     #timeSeriesChart,
     #individualScatterChart,
     #comparisonChart {
-        min-height: 250px;
+        min-height: 250px !important;
+        height: 250px !important;
+        width: 100% !important;
     }
 }
 
@@ -827,4 +871,25 @@ footer a:hover {
     .loading::before {
         animation: none;
     }
+}
+
+/* Force responsive behavior for all chart containers */
+.chart-container > div,
+.scatterplot-container > div,
+.comparison-container > div,
+.overview-chart-container > div,
+.scatterplot-chart-container > div {
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* Plotly specific responsive fixes */
+.js-plotly-plot .plotly {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.js-plotly-plot .svg-container {
+    width: 100% !important;
+    height: 100% !important;
 }

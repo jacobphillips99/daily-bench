@@ -6,9 +6,18 @@ let isDataLoaded = false;
 let allModelsData = [];
 let individualModelData = [];
 
-// Mobile detection
-const isMobile = window.innerWidth <= 768;
-const isSmallMobile = window.innerWidth <= 480;
+// Dynamic mobile detection functions
+function isMobile() {
+    return window.innerWidth <= 768;
+}
+
+function isSmallMobile() {
+    return window.innerWidth <= 480;
+}
+
+function isPortrait() {
+    return window.innerHeight > window.innerWidth;
+}
 
 // DOM elements for both sections
 const allModelsElements = {
@@ -35,64 +44,98 @@ const sharedElements = {
 
 // Mobile-optimized Plotly configuration
 function getMobileConfig() {
+    const mobile = isMobile();
+    const smallMobile = isSmallMobile();
+
     return {
         responsive: true,
-        displayModeBar: !isSmallMobile, // Hide toolbar on small mobile
-        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'autoScale2d', 'resetScale2d'],
+        displayModeBar: !smallMobile,
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'autoScale2d', 'resetScale2d', 'zoom2d', 'zoomIn2d', 'zoomOut2d'],
         displaylogo: false,
+        doubleClick: 'reset',
+        showTips: false,
         toImageButtonOptions: {
             format: 'png',
             filename: 'chart',
-            height: isMobile ? 300 : 500,
-            width: isMobile ? 300 : 700,
+            height: mobile ? (isPortrait() ? 400 : 300) : 500,
+            width: mobile ? (isPortrait() ? 350 : 500) : 700,
             scale: 1
         }
     };
 }
 
 function getMobileLayout(baseLayout) {
+    const mobile = isMobile();
+    const smallMobile = isSmallMobile();
+    const portrait = isPortrait();
+
     const mobileLayout = { ...baseLayout };
 
-    if (isMobile) {
-        // Adjust margins for mobile
+    if (mobile) {
+        // Adjust margins for mobile - make them smaller to use more space
         mobileLayout.margin = {
-            t: isSmallMobile ? 40 : 50,
-            r: isSmallMobile ? 20 : 30,
-            b: isSmallMobile ? 60 : 80,
-            l: isSmallMobile ? 40 : 60
+            t: smallMobile ? 35 : 45,
+            r: smallMobile ? 15 : 25,
+            b: smallMobile ? (portrait ? 70 : 50) : 70,
+            l: smallMobile ? 35 : 50
         };
 
         // Adjust font sizes
         if (mobileLayout.title) {
-            mobileLayout.title.font = {
-                size: isSmallMobile ? 14 : 16
+            mobileLayout.title = {
+                ...mobileLayout.title,
+                font: { size: smallMobile ? 13 : 14 },
+                // Wrap long titles on mobile
+                text: typeof mobileLayout.title === 'string' ?
+                    (mobileLayout.title.length > 50 ? mobileLayout.title.substring(0, 47) + '...' : mobileLayout.title) :
+                    (mobileLayout.title.text && mobileLayout.title.text.length > 50 ? mobileLayout.title.text.substring(0, 47) + '...' : mobileLayout.title.text)
             };
         }
 
         if (mobileLayout.xaxis) {
-            mobileLayout.xaxis.title = {
-                ...mobileLayout.xaxis.title,
-                font: { size: isSmallMobile ? 11 : 12 }
+            mobileLayout.xaxis = {
+                ...mobileLayout.xaxis,
+                title: {
+                    text: typeof mobileLayout.xaxis.title === 'string' ? mobileLayout.xaxis.title : mobileLayout.xaxis.title?.text || '',
+                    font: { size: smallMobile ? 10 : 11 }
+                },
+                tickfont: { size: smallMobile ? 9 : 10 },
+                automargin: true
             };
-            mobileLayout.xaxis.tickfont = { size: isSmallMobile ? 10 : 11 };
         }
 
         if (mobileLayout.yaxis) {
-            mobileLayout.yaxis.title = {
-                ...mobileLayout.yaxis.title,
-                font: { size: isSmallMobile ? 11 : 12 }
+            mobileLayout.yaxis = {
+                ...mobileLayout.yaxis,
+                title: {
+                    text: typeof mobileLayout.yaxis.title === 'string' ? mobileLayout.yaxis.title : mobileLayout.yaxis.title?.text || '',
+                    font: { size: smallMobile ? 10 : 11 }
+                },
+                tickfont: { size: smallMobile ? 9 : 10 },
+                automargin: true
             };
-            mobileLayout.yaxis.tickfont = { size: isSmallMobile ? 10 : 11 };
         }
 
-        // Adjust legend
-        if (mobileLayout.legend) {
+        // Adjust legend for mobile
+        if (mobileLayout.legend && mobileLayout.showlegend !== false) {
             mobileLayout.legend = {
                 ...mobileLayout.legend,
-                font: { size: isSmallMobile ? 10 : 11 },
-                y: isSmallMobile ? -0.3 : -0.2
+                font: { size: smallMobile ? 9 : 10 },
+                orientation: portrait ? 'v' : 'h',
+                x: portrait ? 0.02 : 0.5,
+                xanchor: portrait ? 'left' : 'center',
+                y: portrait ? 0.98 : -0.15,
+                yanchor: portrait ? 'top' : 'bottom',
+                bgcolor: 'rgba(255,255,255,0.8)',
+                bordercolor: 'rgba(0,0,0,0.1)',
+                borderwidth: 1
             };
         }
+
+        // Ensure proper sizing
+        mobileLayout.autosize = true;
+        mobileLayout.width = undefined; // Let it be responsive
+        mobileLayout.height = undefined; // Let it be responsive
     }
 
     return mobileLayout;
@@ -103,24 +146,25 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     loadDefaultData();
 
-    // Handle orientation changes
+    // Handle orientation changes with better timing
     window.addEventListener('orientationchange', function() {
+        // Wait for orientation change to complete
         setTimeout(() => {
-            // Redraw charts after orientation change
             if (isDataLoaded) {
+                console.log('Orientation changed, redrawing charts...');
                 updateAllModelsVisualization();
                 updateIndividualModelVisualization();
             }
-        }, 100);
+        }, 300); // Increased delay for orientation change
     });
 
-    // Handle window resize
+    // Handle window resize with debouncing
     let resizeTimer;
     window.addEventListener('resize', function() {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
-            // Redraw charts after resize
             if (isDataLoaded) {
+                console.log('Window resized, redrawing charts...');
                 updateAllModelsVisualization();
                 updateIndividualModelVisualization();
             }
@@ -521,8 +565,8 @@ function updateOverviewChart() {
                 mode: 'lines+markers',
                 type: 'scatter',
                 name: modelName,
-                line: { color: color, width: isMobile ? 2 : 3 },
-                marker: { color: color, size: isMobile ? 6 : 8 }
+                line: { color: color, width: isMobile() ? 2 : 3 },
+                marker: { color: color, size: isMobile() ? 5 : 8 }
             });
             colorIndex++;
         }
@@ -557,17 +601,27 @@ function updateOverviewChart() {
         paper_bgcolor: 'white',
         showlegend: true,
         legend: {
-            orientation: isMobile ? 'v' : 'h',
-            x: isMobile ? 0.02 : 0.5,
-            xanchor: isMobile ? 'left' : 'center',
-            y: isMobile ? 1 : -0.2
+            orientation: isMobile() ? (isPortrait() ? 'v' : 'h') : 'h',
+            x: isMobile() ? (isPortrait() ? 0.02 : 0.5) : 0.5,
+            xanchor: isMobile() ? (isPortrait() ? 'left' : 'center') : 'center',
+            y: isMobile() ? (isPortrait() ? 0.98 : -0.15) : -0.2
         }
     };
 
     const mobileLayout = getMobileLayout(layout);
     const config = getMobileConfig();
 
-    Plotly.newPlot(chartDiv, traces, mobileLayout, config);
+    // Clear the div first to ensure proper redraw
+    chartDiv.innerHTML = '';
+
+    Plotly.newPlot(chartDiv, traces, mobileLayout, config).then(() => {
+        // Force resize after plot is ready
+        if (isMobile()) {
+            setTimeout(() => {
+                Plotly.Plots.resize(chartDiv);
+            }, 100);
+        }
+    });
 }
 
 function updateTimeSeriesChart() {
@@ -637,8 +691,8 @@ function updateTimeSeriesChart() {
         mode: 'lines+markers',
         type: 'scatter',
         name: individualElements.modelSelect.value,
-        line: { color: '#667eea', width: isMobile ? 2 : 3 },
-        marker: { color: '#667eea', size: isMobile ? 6 : 8 }
+        line: { color: '#667eea', width: isMobile() ? 2 : 3 },
+        marker: { color: '#667eea', size: isMobile() ? 5 : 8 }
     }];
 
     const selectedMetric = individualElements.metricSelect.value;
@@ -665,7 +719,17 @@ function updateTimeSeriesChart() {
     const mobileLayout = getMobileLayout(layout);
     const config = getMobileConfig();
 
-    Plotly.newPlot(chartDiv, traces, mobileLayout, config);
+    // Clear the div first to ensure proper redraw
+    chartDiv.innerHTML = '';
+
+    Plotly.newPlot(chartDiv, traces, mobileLayout, config).then(() => {
+        // Force resize after plot is ready
+        if (isMobile()) {
+            setTimeout(() => {
+                Plotly.Plots.resize(chartDiv);
+            }, 100);
+        }
+    });
 }
 
 function updateSummaryStats() {
@@ -823,7 +887,7 @@ function updateComparisonChart() {
         name: 'Daily Average',
         marker: {
             color: '#48bb78',
-            size: isMobile ? 8 : 10,
+            size: isMobile() ? 8 : 10,
             line: { color: '#38a169', width: 2 }
         },
         error_y: {
@@ -832,7 +896,7 @@ function updateComparisonChart() {
             visible: true,
             color: '#38a169',
             thickness: 2,
-            width: isMobile ? 4 : 6
+            width: isMobile() ? 4 : 6
         }
     };
 
@@ -861,7 +925,17 @@ function updateComparisonChart() {
     const mobileLayout = getMobileLayout(layout);
     const config = getMobileConfig();
 
-    Plotly.newPlot(chartDiv, [trace], mobileLayout, config);
+    // Clear the div first to ensure proper redraw
+    chartDiv.innerHTML = '';
+
+    Plotly.newPlot(chartDiv, [trace], mobileLayout, config).then(() => {
+        // Force resize after plot is ready
+        if (isMobile()) {
+            setTimeout(() => {
+                Plotly.Plots.resize(chartDiv);
+            }, 100);
+        }
+    });
 }
 
 function updateDataTable() {
@@ -962,7 +1036,7 @@ function updateAllModelsScatterplot() {
             name: modelName,
             marker: {
                 color: color,
-                size: isMobile ? 4 : 6,
+                size: isMobile() ? 4 : 6,
                 opacity: 0.6
             }
         });
@@ -986,7 +1060,7 @@ function updateAllModelsScatterplot() {
             type: 'linear',
             tickmode: 'array',
             tickvals: [0, 1, 2, 3, 4, 5, 6, 7],
-            ticktext: isMobile ? ['S', 'M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            ticktext: isMobile() ? ['S', 'M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
             range: [0, 7]
         };
     } else {
@@ -996,7 +1070,7 @@ function updateAllModelsScatterplot() {
             range: [0, 24],
             tickmode: 'linear',
             tick0: 0,
-            dtick: isMobile ? 6 : 4
+            dtick: isMobile() ? 6 : 4
         };
     }
 
@@ -1022,17 +1096,27 @@ function updateAllModelsScatterplot() {
         paper_bgcolor: 'white',
         showlegend: true,
         legend: {
-            orientation: isMobile ? 'v' : 'h',
-            x: isMobile ? 0.02 : 0.5,
-            xanchor: isMobile ? 'left' : 'center',
-            y: isMobile ? 1 : -0.2
+            orientation: isMobile() ? (isPortrait() ? 'v' : 'h') : 'h',
+            x: isMobile() ? (isPortrait() ? 0.02 : 0.5) : 0.5,
+            xanchor: isMobile() ? (isPortrait() ? 'left' : 'center') : 'center',
+            y: isMobile() ? (isPortrait() ? 0.98 : -0.15) : -0.2
         }
     };
 
     const mobileLayout = getMobileLayout(layout);
     const config = getMobileConfig();
 
-    Plotly.newPlot(chartDiv, traces, mobileLayout, config);
+    // Clear the div first to ensure proper redraw
+    chartDiv.innerHTML = '';
+
+    Plotly.newPlot(chartDiv, traces, mobileLayout, config).then(() => {
+        // Force resize after plot is ready
+        if (isMobile()) {
+            setTimeout(() => {
+                Plotly.Plots.resize(chartDiv);
+            }, 100);
+        }
+    });
 }
 
 function updateIndividualScatterplot() {
@@ -1060,7 +1144,7 @@ function updateIndividualScatterplot() {
         name: individualElements.modelSelect.value,
         marker: {
             color: '#667eea',
-            size: isMobile ? 6 : 8,
+            size: isMobile() ? 6 : 8,
             opacity: 0.7
         }
     }];
@@ -1078,7 +1162,7 @@ function updateIndividualScatterplot() {
             type: 'linear',
             tickmode: 'array',
             tickvals: [0, 1, 2, 3, 4, 5, 6, 7],
-            ticktext: isMobile ? ['S', 'M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            ticktext: isMobile() ? ['S', 'M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
             range: [0, 7]
         };
     } else {
@@ -1088,7 +1172,7 @@ function updateIndividualScatterplot() {
             range: [0, 24],
             tickmode: 'linear',
             tick0: 0,
-            dtick: isMobile ? 6 : 4
+            dtick: isMobile() ? 6 : 4
         };
     }
 
@@ -1121,7 +1205,17 @@ function updateIndividualScatterplot() {
     const mobileLayout = getMobileLayout(layout);
     const config = getMobileConfig();
 
-    Plotly.newPlot(chartDiv, traces, mobileLayout, config);
+    // Clear the div first to ensure proper redraw
+    chartDiv.innerHTML = '';
+
+    Plotly.newPlot(chartDiv, traces, mobileLayout, config).then(() => {
+        // Force resize after plot is ready
+        if (isMobile()) {
+            setTimeout(() => {
+                Plotly.Plots.resize(chartDiv);
+            }, 100);
+        }
+    });
 }
 
 function processDataForScatterplot(data, timePeriod) {
