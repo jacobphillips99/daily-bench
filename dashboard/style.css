@@ -536,6 +536,9 @@ footer a:hover {
 @media (max-width: 480px) {
     .container {
         padding: 10px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
     }
 
     header {
@@ -567,11 +570,18 @@ footer a:hover {
     .controls {
         padding: 15px;
         gap: 15px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+        box-sizing: border-box;
     }
 
     .control-group {
         min-width: auto;
         flex: 1 1 100%;
+        /* Ensure control groups don't overflow */
+        max-width: 100%;
+        overflow: hidden;
     }
 
     .control-group select,
@@ -579,6 +589,22 @@ footer a:hover {
         padding: 14px 15px;
         font-size: 16px; /* Prevent zoom on iOS */
         min-height: 48px; /* Better touch target */
+        /* Prevent dropdown overflow on mobile */
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        /* Truncate long text in dropdowns */
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+    }
+
+    /* Force dropdown options to also respect width limits */
+    .control-group select option {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .overview-chart-container,
@@ -689,6 +715,10 @@ footer a:hover {
 
     section {
         margin-bottom: 25px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+        box-sizing: border-box;
     }
 
     footer {

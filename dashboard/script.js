@@ -24,8 +24,7 @@ const allModelsElements = {
     providerSelect: document.getElementById('allModelsProviderSelect'),
     metricSelect: document.getElementById('allModelsMetricSelect'),
     scenarioSelect: document.getElementById('allModelsScenarioSelect'),
-    timePeriodSelect: document.getElementById('allModelsTimePeriodSelect'),
-    refreshBtn: document.getElementById('refreshBtn')
+    timePeriodSelect: document.getElementById('allModelsTimePeriodSelect')
 };
 
 const individualElements = {
@@ -120,14 +119,14 @@ function getMobileLayout(baseLayout) {
         if (mobileLayout.legend && mobileLayout.showlegend !== false) {
             mobileLayout.legend = {
                 ...mobileLayout.legend,
-                font: { size: smallMobile ? 9 : 10 },
-                orientation: portrait ? 'v' : 'h',
-                x: portrait ? 0.02 : 0.5,
-                xanchor: portrait ? 'left' : 'center',
-                y: portrait ? 0.98 : -0.15,
-                yanchor: portrait ? 'top' : 'bottom',
-                bgcolor: 'rgba(255,255,255,0.8)',
-                bordercolor: 'rgba(0,0,0,0.1)',
+                font: { size: smallMobile ? 8 : 9 },
+                orientation: 'h', // Always horizontal on mobile to save vertical space
+                x: 0.5,
+                xanchor: 'center',
+                y: -0.15, // Always position below chart on mobile
+                yanchor: 'bottom',
+                bgcolor: 'rgba(255,255,255,0.95)',
+                bordercolor: 'rgba(0,0,0,0.2)',
                 borderwidth: 1
             };
         }
@@ -173,8 +172,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupEventListeners() {
-    allModelsElements.refreshBtn.addEventListener('click', loadDefaultData);
-
     // All models section listeners
     allModelsElements.providerSelect.addEventListener('change', updateAllModelsVisualization);
     allModelsElements.metricSelect.addEventListener('change', updateAllModelsVisualization);
@@ -223,7 +220,6 @@ async function loadDefaultData() {
             const csvText = await response.text();
             console.log(`CSV file size: ${csvText.length} characters`);
             processCSVData(csvText);
-            setStatus(`Data loaded successfully from ${source}`, 'success');
         } else {
             console.log(`❌ Both locations failed. Dashboard: ./benchmark_summary.csv, Results: /results/benchmark_summary.csv`);
             throw new Error('CSV file not found in either dashboard or results directory');
@@ -272,6 +268,9 @@ function processCSVData(csvText) {
     updateAllModelsVisualization();
     updateIndividualModelVisualization();
     sharedElements.lastUpdated.textContent = new Date().toLocaleString();
+
+    // Hide the status bar once data is loaded
+    sharedElements.status.style.display = 'none';
 }
 
 function extractProvider(modelName) {
@@ -599,13 +598,7 @@ function updateOverviewChart() {
         },
         plot_bgcolor: '#f8f9fa',
         paper_bgcolor: 'white',
-        showlegend: true,
-        legend: {
-            orientation: isMobile() ? (isPortrait() ? 'v' : 'h') : 'h',
-            x: isMobile() ? (isPortrait() ? 0.02 : 0.5) : 0.5,
-            xanchor: isMobile() ? (isPortrait() ? 'left' : 'center') : 'center',
-            y: isMobile() ? (isPortrait() ? 0.98 : -0.15) : -0.2
-        }
+        showlegend: true
     };
 
     const mobileLayout = getMobileLayout(layout);
@@ -1094,13 +1087,7 @@ function updateAllModelsScatterplot() {
         },
         plot_bgcolor: '#f8f9fa',
         paper_bgcolor: 'white',
-        showlegend: true,
-        legend: {
-            orientation: isMobile() ? (isPortrait() ? 'v' : 'h') : 'h',
-            x: isMobile() ? (isPortrait() ? 0.02 : 0.5) : 0.5,
-            xanchor: isMobile() ? (isPortrait() ? 'left' : 'center') : 'center',
-            y: isMobile() ? (isPortrait() ? 0.98 : -0.15) : -0.2
-        }
+        showlegend: true
     };
 
     const mobileLayout = getMobileLayout(layout);
