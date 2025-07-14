@@ -71,11 +71,19 @@ function getMobileLayout(baseLayout) {
     const mobileLayout = { ...baseLayout };
 
     if (mobile) {
-        // Adjust margins for mobile - make them smaller to use more space
+        // Check if legend will be shown
+        const hasLegend = mobileLayout.showlegend !== false &&
+                         (!mobileLayout.legend || mobileLayout.legend.showlegend !== false);
+
+        // Adjust margins for mobile - increase bottom margin if legend is present
+        const bottomMargin = hasLegend ?
+            (smallMobile ? (portrait ? 100 : 80) : 90) : // Extra space for legend
+            (smallMobile ? (portrait ? 70 : 50) : 70);   // Normal space
+
         mobileLayout.margin = {
             t: smallMobile ? 35 : 45,
             r: smallMobile ? 15 : 25,
-            b: smallMobile ? (portrait ? 70 : 50) : 70,
+            b: bottomMargin,
             l: smallMobile ? 35 : 50
         };
 
@@ -115,20 +123,23 @@ function getMobileLayout(baseLayout) {
             };
         }
 
-        // Adjust legend for mobile
-        if (mobileLayout.legend && mobileLayout.showlegend !== false) {
+        // Adjust legend for mobile - force it below the chart
+        if (hasLegend) {
             mobileLayout.legend = {
                 ...mobileLayout.legend,
                 font: { size: smallMobile ? 8 : 9 },
                 orientation: 'h', // Always horizontal on mobile to save vertical space
                 x: 0.5,
                 xanchor: 'center',
-                y: -0.15, // Always position below chart on mobile
-                yanchor: 'bottom',
+                y: -0.25, // Position further below chart on mobile
+                yanchor: 'top', // Changed to 'top' for more predictable positioning
                 bgcolor: 'rgba(255,255,255,0.95)',
                 bordercolor: 'rgba(0,0,0,0.2)',
                 borderwidth: 1
             };
+
+            // Ensure legend is visible
+            mobileLayout.showlegend = true;
         }
 
         // Ensure proper sizing
