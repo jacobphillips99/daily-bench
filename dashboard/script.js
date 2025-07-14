@@ -6,6 +6,10 @@ let isDataLoaded = false;
 let allModelsData = [];
 let individualModelData = [];
 
+// Mobile detection
+const isMobile = window.innerWidth <= 768;
+const isSmallMobile = window.innerWidth <= 480;
+
 // DOM elements for both sections
 const allModelsElements = {
     providerSelect: document.getElementById('allModelsProviderSelect'),
@@ -29,10 +33,99 @@ const sharedElements = {
     lastUpdated: document.getElementById('lastUpdated')
 };
 
+// Mobile-optimized Plotly configuration
+function getMobileConfig() {
+    return {
+        responsive: true,
+        displayModeBar: !isSmallMobile, // Hide toolbar on small mobile
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d', 'autoScale2d', 'resetScale2d'],
+        displaylogo: false,
+        toImageButtonOptions: {
+            format: 'png',
+            filename: 'chart',
+            height: isMobile ? 300 : 500,
+            width: isMobile ? 300 : 700,
+            scale: 1
+        }
+    };
+}
+
+function getMobileLayout(baseLayout) {
+    const mobileLayout = { ...baseLayout };
+
+    if (isMobile) {
+        // Adjust margins for mobile
+        mobileLayout.margin = {
+            t: isSmallMobile ? 40 : 50,
+            r: isSmallMobile ? 20 : 30,
+            b: isSmallMobile ? 60 : 80,
+            l: isSmallMobile ? 40 : 60
+        };
+
+        // Adjust font sizes
+        if (mobileLayout.title) {
+            mobileLayout.title.font = {
+                size: isSmallMobile ? 14 : 16
+            };
+        }
+
+        if (mobileLayout.xaxis) {
+            mobileLayout.xaxis.title = {
+                ...mobileLayout.xaxis.title,
+                font: { size: isSmallMobile ? 11 : 12 }
+            };
+            mobileLayout.xaxis.tickfont = { size: isSmallMobile ? 10 : 11 };
+        }
+
+        if (mobileLayout.yaxis) {
+            mobileLayout.yaxis.title = {
+                ...mobileLayout.yaxis.title,
+                font: { size: isSmallMobile ? 11 : 12 }
+            };
+            mobileLayout.yaxis.tickfont = { size: isSmallMobile ? 10 : 11 };
+        }
+
+        // Adjust legend
+        if (mobileLayout.legend) {
+            mobileLayout.legend = {
+                ...mobileLayout.legend,
+                font: { size: isSmallMobile ? 10 : 11 },
+                y: isSmallMobile ? -0.3 : -0.2
+            };
+        }
+    }
+
+    return mobileLayout;
+}
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     loadDefaultData();
+
+    // Handle orientation changes
+    window.addEventListener('orientationchange', function() {
+        setTimeout(() => {
+            // Redraw charts after orientation change
+            if (isDataLoaded) {
+                updateAllModelsVisualization();
+                updateIndividualModelVisualization();
+            }
+        }, 100);
+    });
+
+    // Handle window resize
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            // Redraw charts after resize
+            if (isDataLoaded) {
+                updateAllModelsVisualization();
+                updateIndividualModelVisualization();
+            }
+        }, 250);
+    });
 });
 
 function setupEventListeners() {
@@ -53,7 +146,6 @@ function setupEventListeners() {
 }
 
 function setStatus(message, type = 'info') {
-
     sharedElements.status.innerHTML = message;
     sharedElements.status.className = `status ${type}`;
 }
@@ -429,8 +521,8 @@ function updateOverviewChart() {
                 mode: 'lines+markers',
                 type: 'scatter',
                 name: modelName,
-                line: { color: color, width: 3 },
-                marker: { color: color, size: 8 }
+                line: { color: color, width: isMobile ? 2 : 3 },
+                marker: { color: color, size: isMobile ? 6 : 8 }
             });
             colorIndex++;
         }
@@ -461,25 +553,21 @@ function updateOverviewChart() {
         yaxis: {
             title: metricName
         },
-        margin: { t: 50, r: 50, b: 80, l: 80 },
         plot_bgcolor: '#f8f9fa',
         paper_bgcolor: 'white',
         showlegend: true,
         legend: {
-            orientation: 'h',
-            x: 0.5,
-            xanchor: 'center',
-            y: -0.2
+            orientation: isMobile ? 'v' : 'h',
+            x: isMobile ? 0.02 : 0.5,
+            xanchor: isMobile ? 'left' : 'center',
+            y: isMobile ? 1 : -0.2
         }
     };
 
-    const config = {
-        responsive: true,
-        displayModeBar: true,
-        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
-    };
+    const mobileLayout = getMobileLayout(layout);
+    const config = getMobileConfig();
 
-    Plotly.newPlot(chartDiv, traces, layout, config);
+    Plotly.newPlot(chartDiv, traces, mobileLayout, config);
 }
 
 function updateTimeSeriesChart() {
@@ -549,8 +637,8 @@ function updateTimeSeriesChart() {
         mode: 'lines+markers',
         type: 'scatter',
         name: individualElements.modelSelect.value,
-        line: { color: '#667eea', width: 3 },
-        marker: { color: '#667eea', size: 8 }
+        line: { color: '#667eea', width: isMobile ? 2 : 3 },
+        marker: { color: '#667eea', size: isMobile ? 6 : 8 }
     }];
 
     const selectedMetric = individualElements.metricSelect.value;
@@ -569,25 +657,15 @@ function updateTimeSeriesChart() {
         yaxis: {
             title: selectedMetric || 'Value'
         },
-        margin: { t: 50, r: 50, b: 100, l: 80 },
         plot_bgcolor: '#f8f9fa',
         paper_bgcolor: 'white',
-        showlegend: true,
-        legend: {
-            orientation: 'h',
-            x: 0.5,
-            xanchor: 'center',
-            y: -0.25
-        }
+        showlegend: false
     };
 
-    const config = {
-        responsive: true,
-        displayModeBar: true,
-        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
-    };
+    const mobileLayout = getMobileLayout(layout);
+    const config = getMobileConfig();
 
-    Plotly.newPlot(chartDiv, traces, layout, config);
+    Plotly.newPlot(chartDiv, traces, mobileLayout, config);
 }
 
 function updateSummaryStats() {
@@ -745,7 +823,7 @@ function updateComparisonChart() {
         name: 'Daily Average',
         marker: {
             color: '#48bb78',
-            size: 10,
+            size: isMobile ? 8 : 10,
             line: { color: '#38a169', width: 2 }
         },
         error_y: {
@@ -754,7 +832,7 @@ function updateComparisonChart() {
             visible: true,
             color: '#38a169',
             thickness: 2,
-            width: 6
+            width: isMobile ? 4 : 6
         }
     };
 
@@ -775,19 +853,15 @@ function updateComparisonChart() {
         yaxis: {
             title: individualElements.metricSelect.value || 'Value'
         },
-        margin: { t: 60, r: 50, b: 100, l: 80 },
         plot_bgcolor: '#f8f9fa',
         paper_bgcolor: 'white',
         showlegend: false
     };
 
-    const config = {
-        responsive: true,
-        displayModeBar: true,
-        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
-    };
+    const mobileLayout = getMobileLayout(layout);
+    const config = getMobileConfig();
 
-    Plotly.newPlot(chartDiv, [trace], layout, config);
+    Plotly.newPlot(chartDiv, [trace], mobileLayout, config);
 }
 
 function updateDataTable() {
@@ -888,7 +962,7 @@ function updateAllModelsScatterplot() {
             name: modelName,
             marker: {
                 color: color,
-                size: 6,
+                size: isMobile ? 4 : 6,
                 opacity: 0.6
             }
         });
@@ -912,7 +986,7 @@ function updateAllModelsScatterplot() {
             type: 'linear',
             tickmode: 'array',
             tickvals: [0, 1, 2, 3, 4, 5, 6, 7],
-            ticktext: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            ticktext: isMobile ? ['S', 'M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
             range: [0, 7]
         };
     } else {
@@ -922,11 +996,11 @@ function updateAllModelsScatterplot() {
             range: [0, 24],
             tickmode: 'linear',
             tick0: 0,
-            dtick: 4
+            dtick: isMobile ? 6 : 4
         };
     }
 
-    // 🔧  Hide the zero-line / axis line
+    // Hide the zero-line / axis line
     xAxisConfig.zeroline = false;
     xAxisConfig.showline = false;
     xAxisConfig.linecolor = 'rgba(0,0,0,0)';
@@ -944,25 +1018,21 @@ function updateAllModelsScatterplot() {
             linewidth: 0,                 // Remove y-axis line width
             showline: false              // Explicitly hide the y-axis line
         },
-        margin: { t: 50, r: 50, b: 80, l: 80 },
         plot_bgcolor: '#f8f9fa',
         paper_bgcolor: 'white',
         showlegend: true,
         legend: {
-            orientation: 'h',
-            x: 0.5,
-            xanchor: 'center',
-            y: -0.2
+            orientation: isMobile ? 'v' : 'h',
+            x: isMobile ? 0.02 : 0.5,
+            xanchor: isMobile ? 'left' : 'center',
+            y: isMobile ? 1 : -0.2
         }
     };
 
-    const config = {
-        responsive: true,
-        displayModeBar: true,
-        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
-    };
+    const mobileLayout = getMobileLayout(layout);
+    const config = getMobileConfig();
 
-    Plotly.newPlot(chartDiv, traces, layout, config);
+    Plotly.newPlot(chartDiv, traces, mobileLayout, config);
 }
 
 function updateIndividualScatterplot() {
@@ -990,7 +1060,7 @@ function updateIndividualScatterplot() {
         name: individualElements.modelSelect.value,
         marker: {
             color: '#667eea',
-            size: 8,
+            size: isMobile ? 6 : 8,
             opacity: 0.7
         }
     }];
@@ -1008,7 +1078,7 @@ function updateIndividualScatterplot() {
             type: 'linear',
             tickmode: 'array',
             tickvals: [0, 1, 2, 3, 4, 5, 6, 7],
-            ticktext: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+            ticktext: isMobile ? ['S', 'M', 'T', 'W', 'T', 'F', 'S', 'S'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
             range: [0, 7]
         };
     } else {
@@ -1018,11 +1088,11 @@ function updateIndividualScatterplot() {
             range: [0, 24],
             tickmode: 'linear',
             tick0: 0,
-            dtick: 4
+            dtick: isMobile ? 6 : 4
         };
     }
 
-    // 🔧  Hide the zero-line / axis line
+    // Hide the zero-line / axis line
     xAxisConfig.zeroline = false;
     xAxisConfig.showline = false;
     xAxisConfig.linecolor = 'rgba(0,0,0,0)';
@@ -1043,19 +1113,15 @@ function updateIndividualScatterplot() {
             linewidth: 0,                 // Remove y-axis line width
             showline: false              // Explicitly hide the y-axis line
         },
-        margin: { t: 50, r: 50, b: 100, l: 80 },
         plot_bgcolor: '#f8f9fa',
         paper_bgcolor: 'white',
         showlegend: false
     };
 
-    const config = {
-        responsive: true,
-        displayModeBar: true,
-        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d']
-    };
+    const mobileLayout = getMobileLayout(layout);
+    const config = getMobileConfig();
 
-    Plotly.newPlot(chartDiv, traces, layout, config);
+    Plotly.newPlot(chartDiv, traces, mobileLayout, config);
 }
 
 function processDataForScatterplot(data, timePeriod) {
