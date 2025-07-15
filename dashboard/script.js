@@ -75,10 +75,10 @@ function getMobileLayout(baseLayout) {
         const hasLegend = mobileLayout.showlegend !== false &&
                          (!mobileLayout.legend || mobileLayout.legend.showlegend !== false);
 
-        // Adjust margins for mobile - increase bottom margin if legend is present
+        // Adjust margins for mobile - increase bottom margin to accommodate both x-axis title and legend
         const bottomMargin = hasLegend ?
-            (smallMobile ? (portrait ? 100 : 80) : 90) : // Extra space for legend
-            (smallMobile ? (portrait ? 70 : 50) : 70);   // Normal space
+            (smallMobile ? (portrait ? 120 : 100) : 110) : // Extra space for both x-axis title and legend
+            (smallMobile ? (portrait ? 80 : 60) : 80);     // Space for x-axis title only
 
         mobileLayout.margin = {
             t: smallMobile ? 35 : 45,
@@ -104,10 +104,11 @@ function getMobileLayout(baseLayout) {
                 ...mobileLayout.xaxis,
                 title: {
                     text: typeof mobileLayout.xaxis.title === 'string' ? mobileLayout.xaxis.title : mobileLayout.xaxis.title?.text || '',
-                    font: { size: smallMobile ? 10 : 11 }
+                    font: { size: smallMobile ? 10 : 11 },
+                    standoff: 10 // Ensure the x-axis title has proper spacing
                 },
                 tickfont: { size: smallMobile ? 9 : 10 },
-                automargin: true
+                automargin: false // Disable automargin to prevent interference with legend
             };
         }
 
@@ -123,7 +124,7 @@ function getMobileLayout(baseLayout) {
             };
         }
 
-        // Adjust legend for mobile - force it below the chart
+        // Adjust legend for mobile - position it well below the x-axis title
         if (hasLegend) {
             mobileLayout.legend = {
                 ...mobileLayout.legend,
@@ -131,8 +132,8 @@ function getMobileLayout(baseLayout) {
                 orientation: 'h', // Always horizontal on mobile to save vertical space
                 x: 0.5,
                 xanchor: 'center',
-                y: -0.25, // Position further below chart on mobile
-                yanchor: 'top', // Changed to 'top' for more predictable positioning
+                y: -0.35, // Position further below chart to avoid x-axis title
+                yanchor: 'top',
                 bgcolor: 'rgba(255,255,255,0.95)',
                 bordercolor: 'rgba(0,0,0,0.2)',
                 borderwidth: 1
