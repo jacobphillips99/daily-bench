@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Bench - Model Performance Dashboard</title>
+    <title>Daily Bench</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
@@ -12,7 +12,7 @@
     <div class="container">
         <header>
             <h1>Daily Bench - Model Performance Dashboard</h1>
-            <p>Track and visualize model performance over time</p>
+            <p>Track and visualize model performance over time, monitor for regression during peak load periods, and detect quality changes across LLM APIs</p>
         </header>
 
         <div class="status" id="status">
@@ -23,7 +23,7 @@
         <section class="all-models-section">
             <div class="section-header">
                 <h2>📊 All Models Performance</h2>
-                <p>Compare performance across all available models</p>
+                <p>Compare performance across all available providers and models</p>
             </div>
 
             <div class="controls all-models-controls">
@@ -144,9 +144,26 @@
             </div>
         </section>
 
+        <!-- Why This Matters -->
+        <section class="why-matters-section">
+            <div class="section-header">
+                <h2>Why This Matters</h2>
+                <p>LLM API quality can change without notice, affecting your applications in production. Community reports show these changes happen regularly - tracking performance helps you detect regressions early.</p>
+            </div>
+
+            <!-- Community Evidence -->
+            <div class="community-evidence">
+                <img src="../assets/daily_bench_tweets.png"
+                     alt="Tweets about LLM API quality changes"
+                     class="evidence-image">
+                <p class="evidence-caption"><em>Community reports of LLM quality changes - <a href="https://x.com/secemp9/status/1931244386743894194" target="_blank">@secemp9</a>, <a href="https://x.com/_xjdr/status/1931068996092334274" target="_blank">@_xjdr</a>, <a href="https://x.com/PrimeIntellect/status/1884343700245074092" target="_blank">@PrimeIntellect</a>, <a href="https://x.com/0xblacklight/status/1931098104411103576" target="_blank">@0xblacklight</a></em></p>
+            </div>
+        </section>
+
         <footer>
             <p>Built for Daily Bench - Model Performance Tracking</p>
             <p>📚 <a href="https://github.com/jacobphillips99/daily-bench" target="_blank" rel="noopener noreferrer">View on GitHub</a></p>
+            <p>Made by <a href="https://jacobdphillips.com/" target="_blank" rel="noopener noreferrer">Jacob Phillips</a></p>
             <p>Last updated: <span id="lastUpdated">-</span></p>
         </footer>
     </div>
