@@ -1,10 +1,16 @@
 # daily-bench
 
-**Monitoring LLM API quality through automated benchmarking.**
+**Track and visualize model performance over time, monitor for regression during peak load periods, and detect quality changes across LLM APIs.**
+
+![Daily Bench Timeline View](assets/daily-bench-timeline.png)
+*Timeline view showing model performance trends across multiple LLM providers over time*
+
 
 See the dashboard at [https://jacobphillips99.github.io/daily-bench](https://jacobphillips99.github.io/daily-bench).
 
-A lightweight tool built on HELM Lite that runs standardized benchmarks against LLM APIs and tracks performance over time. This helps detect when providers make undisclosed changes to their models.
+`daily-bench` is a lightweight tool built on a [fork]() of [HELMLite](https://crfm.stanford.edu/helm/lite/latest/) that runs standardized benchmarks against LLM APIs and tracks performance over time. This helps detect when providers make undisclosed changes to their models. `daily-bench` runs at a random time within a 6-hour window, 4 times every day. The results are aggregated and published to a public dashboard.
+
+We attempt to make model responses as deterministic as possible by forking HELMLite and setting all recommended parameters for each provider (seed, temperature, top_p, etc.). However, we cannot guarantee that the model responses will be exactly the same across runs; instead, we aim to detect if regressions in model quality are happening, especially if they are happening at the same time across multiple providers or at the same time of day.
 
 ## Why This Matters
 
@@ -14,9 +20,22 @@ Recent pseudo-evidence suggests that some LLM providers [quantize their models d
 
 *Top Left: [@secemp9](https://x.com/secemp9/status/1931244386743894194), Middle Left: [@_xjdr](https://x.com/_xjdr/status/1931068996092334274), Bottom Left: [@PrimeIntellect](https://x.com/PrimeIntellect/status/1884343700245074092), Right: [@0xblacklight](https://x.com/0xblacklight/status/1931098104411103576)*
 
-## Live Results
+## Results
 
 View the current benchmark data at: **[jacobphillips99.github.io/daily-bench](https://jacobphillips99.github.io/daily-bench)**
+
+We can also view model performance over time in a daily or weekly pattern. The daily performance is aggregated to show model performance at each point in time during the day; the weekly performance is aggregated to show model performance at each point in time during the week.
+
+![Daily Bench Daily View](assets/daily-bench-daily-view.png)
+*daily-bench daily view*
+
+![Daily Bench Weekly View](assets/daily-bench-weekly-view.png)
+*daily-bench weekly view*
+
+Overall, we see some variance in model performance -- including maybe detecting some models changes. We do not detect any consistent degradations in model performance on this benchmark at the expected times of high traffic. That's a good sign!
+
+However, it does *not* mean that models are *not* being degraded or quantized; it *does* mean that for some simple tasks, performance is maintained throughout the day and the week. This slice of HELMLite is relatively small and easier than other tasks; users working on extremely difficult problems may see different patterns in model quality over time. Also note that API endpoints may go through different procedures for graceful degradataion of service; chat, completion and other endpoints may be treated differently.
+
 
 ## What This Does
 
@@ -135,4 +154,14 @@ Built with Python, uses CRFM HELM for benchmarking, and generates static HTML da
 - If you are running the dashboard locally, you need to run `daily-bench extract` to generate the CSV file in the `results/` directory.
 - If you run the dashboard locally with `uv run dashboard/serve.py` and do not see an updated version of your dashboard or data, your web browser may be caching the old data. Try clearing your browser cache or using a private or incognito window.
 
-## Contributing
+## Contributing and Citation
+`daily-bench` costs about $5/day to run. If you want to sponsor or contribute, reach out! This project was developed by [Jacob Phillips](https://jacobdphillips.com/). If you use `daily-bench` in your work, please cite it as:
+
+```bibtex
+@misc{phillips2025dailybench,
+    title={daily-bench: Track and visualize model performance over time, monitor for regression during peak load periods, and detect quality changes across LLM APIs},
+    author={Jacob Phillips},
+    year={2025},
+    howpublished={\url{https://github.com/jacobphillips99/daily-bench}}
+}
+```
