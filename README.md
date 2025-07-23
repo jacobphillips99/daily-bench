@@ -3,7 +3,7 @@
 **Track and visualize model performance over time, monitor for regression during peak load periods, and detect quality changes across LLM APIs.**
 
 ![Daily Bench Timeline View](assets/daily-bench-timeline.png)
-*Timeline view showing model performance trends across multiple LLM providers over time*
+*Timeline view showing model performance trends across multiple models and providers over time*
 
 
 See the dashboard at [https://jacobphillips99.github.io/daily-bench](https://jacobphillips99.github.io/daily-bench).
@@ -32,9 +32,9 @@ We can also view model performance over time in a daily or weekly pattern. The d
 ![Daily Bench Weekly View](assets/daily-bench-weekly-view.png)
 *daily-bench weekly view*
 
-Overall, we see some variance in model performance -- including maybe detecting some models changes. We do not detect any consistent degradations in model performance on this benchmark at the expected times of high traffic. That's a good sign!
+Overall, we see some variance in model performance -- including maybe detecting some model changes. We do not detect any consistent degradations in model performance on this benchmark at the expected times of high traffic. That's a good sign!
 
-However, it does *not* mean that models are *not* being degraded or quantized; it *does* mean that for some simple tasks, performance is maintained throughout the day and the week. This slice of HELMLite is relatively small and easier than other tasks; users working on extremely difficult problems may see different patterns in model quality over time. Also note that API endpoints may go through different procedures for graceful degradataion of service; chat, completion and other endpoints may be treated differently.
+However, it does *not* mean that models are *not* being degraded or quantized; it *does* mean that for some simple tasks, performance is maintained throughout the day and the week. This slice of HELMLite is relatively small and easier than other tasks; users working on extremely difficult problems may see different patterns in model quality over time.
 
 
 ## What This Does
