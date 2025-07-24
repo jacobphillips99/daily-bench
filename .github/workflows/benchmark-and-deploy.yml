@@ -175,6 +175,12 @@ jobs:
           echo "No benchmark_summary.csv found in results/ directory"
         fi
 
+        # Copy assets to dashboard for deployment
+        if [ -d "assets" ]; then
+          echo "Copying assets to dashboard/"
+          cp -r assets dashboard/
+        fi
+
         # Show what's in dashboard after copying
         echo "Dashboard contents after copying:"
         ls -la dashboard/ || echo "No dashboard directory found"
