@@ -1,16 +1,16 @@
-# daily-bench
+# DailyBench
 
-**Track and visualize model performance over time, monitor for regression during peak load periods, and detect quality changes across LLM APIs.**
+**DailyBench is an automated, daily evaluation suite to track model performance over time, monitor for regression during peak load periods, and detect quality changes across flagship LLM APIs.**
 
 ![Daily Bench Timeline View](assets/daily-bench-timeline.png)
-*Timeline view showing model performance trends across multiple models and providers over time*
+*Timeline showing performance trends across multiple models and providers.*
 
 
-See the dashboard at [https://jacobphillips99.github.io/daily-bench](https://jacobphillips99.github.io/daily-bench).
+See the live site at [https://jacobphillips99.github.io/daily-bench](https://jacobphillips99.github.io/daily-bench).
 
-`daily-bench` is a lightweight tool built on a [fork]() of [HELMLite](https://crfm.stanford.edu/helm/lite/latest/) that runs standardized benchmarks against LLM APIs and tracks performance over time. This helps detect when providers make undisclosed changes to their models. `daily-bench` runs at a random time within a 6-hour window, 4 times every day. The results are aggregated and published to a public dashboard.
+`DailyBench` is a lightweight tool evaluation suite built on a [fork](https://github.com/jacobphillips99/helm) of [HELMLite](https://crfm.stanford.edu/helm/lite/latest/) that runs standardized benchmarks against LLM APIs and tracks performance over time. This helps detect when providers make undisclosed changes to their models. `DailyBench` runs at a random time within every 6-hour window, 4 times a day. The results are aggregated and published to the public [dashboard](https://jacobphillips99.github.io/daily-bench).
 
-We attempt to make model responses as deterministic as possible by forking HELMLite and setting all recommended parameters for each provider (seed, temperature, top_p, etc.). However, we cannot guarantee that the model responses will be exactly the same across runs; instead, we aim to detect if regressions in model quality are happening, especially if they are happening at the same time across multiple providers or at the same time of day.
+We attempt to make model responses as deterministic as possible by forking HELMLite and setting all recommended parameters for each provider (seed, temperature, top_p, etc.). However, we cannot guarantee that the model responses will be exactly the same across runs and accept that there will be some variance; instead, we aim to detect if regressions or changes in model quality are happening, especially if they are happening in clear, repeated patterns.
 
 ## Why This Matters
 
@@ -24,7 +24,7 @@ Recent pseudo-evidence suggests that some LLM providers [quantize their models d
 
 View the current benchmark data at: **[jacobphillips99.github.io/daily-bench](https://jacobphillips99.github.io/daily-bench)**
 
-We can also view model performance over time in a daily or weekly pattern. The daily performance is aggregated to show model performance at each point in time during the day; the weekly performance is aggregated to show model performance at each point in time during the week.
+We can view model performance over time in a daily or weekly pattern. The daily performance is aggregated to show model performance at each point in time during the day; the weekly performance is aggregated to show model performance at each point in time during the week.
 
 ![Daily Bench Daily View](assets/daily-bench-daily-view.png)
 *daily-bench daily view*
@@ -34,12 +34,21 @@ We can also view model performance over time in a daily or weekly pattern. The d
 
 Overall, we see some variance in model performance -- including maybe detecting some model changes. We do not detect any consistent degradations in model performance on this benchmark at the expected times of high traffic. That's a good sign!
 
-However, it does *not* mean that models are *not* being degraded or quantized; it *does* mean that for some simple tasks, performance is maintained throughout the day and the week. This slice of HELMLite is relatively small and easier than other tasks; users working on extremely difficult problems may see different patterns in model quality over time.
+However, it does *not* mean that models are *not* being degraded or quantized; it *does* mean that for some simple tasks, performance is maintained throughout the day and the week. This slice of HELMLite is relatively small and easier than other tasks; users working on problems at the frontier of AI may see different patterns in model quality over time.
+
+### Interesting Patterns
+![Gemini 2.5 Flash Consistency](assets/gemini_consistency.png)
+Gemini 2.5 Flash performance on `exact_match` is by far the most stable and consistent model evaluated.
+
+![Anthropic Claude 4 Sonnet Switch](assets/anthropic_switch.png)
+This view of Anthropic's Claude 4 Sonnet performance on `f1_score` depicts roughly two or three levels of stable and consistent performance. While these score changes are not correlated with time of day or day of week, they do clearly depict a switch in model quality due to the consistency of the scoring during each flip.
+
+![OpenAI Variance](assets/openai_variance.png)
+OpenAI models displayed the greatest variance in performance throughout the day despite `4o-mini` being the longest-running API in the evaluation suite.
 
 
-## What This Does
-
-- Runs a limited set of HELM Lite benchmarks against LLM APIs
+## How does DailyBench work?
+- 4x daily cron job runs a slice of HELMLite benchmarks against LLM APIs
 - Extracts and aggregates performance metrics over time
 - Provides a web dashboard to visualize trends
 - Tracks performance changes that might indicate model modifications
@@ -140,22 +149,13 @@ daily-bench extract
 python dashboard/serve.py
 ```
 
-## Implementation
-
-This tool wraps [HELM Lite](https://crfm.stanford.edu/helm/lite/latest/) and provides:
-- Simple CLI for running benchmarks
-- Results extraction to CSV format
-- Basic web dashboard for visualization
-- Incremental processing of new benchmark runs
-
-Built with Python, uses CRFM HELM for benchmarking, and generates static HTML dashboards.
 
 ## Developer Notes
 - If you are running the dashboard locally, you need to run `daily-bench extract` to generate the CSV file in the `results/` directory.
 - If you run the dashboard locally with `uv run dashboard/serve.py` and do not see an updated version of your dashboard or data, your web browser may be caching the old data. Try clearing your browser cache or using a private or incognito window.
 
 ## Contributing and Citation
-`daily-bench` costs about $5/day to run. If you want to sponsor or contribute, reach out! This project was developed by [Jacob Phillips](https://jacobdphillips.com/). If you use `daily-bench` in your work, please cite it as:
+`DailyBench` costs about $5/day to run. If you want to sponsor or contribute, reach out! This project was developed by [Jacob Phillips](https://jacobdphillips.com/). If you use `DailyBench` in your work, please cite it as:
 
 ```bibtex
 @misc{phillips2025dailybench,
