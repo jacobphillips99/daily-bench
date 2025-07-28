@@ -155,11 +155,11 @@ python dashboard/serve.py
 - If you run the dashboard locally with `uv run dashboard/serve.py` and do not see an updated version of your dashboard or data, your web browser may be caching the old data. Try clearing your browser cache or using a private or incognito window.
 
 ## Contributing and Citation
-`DailyBench` costs about $5/day to run. If you want to sponsor or contribute, reach out! This project was developed by [Jacob Phillips](https://jacobdphillips.com/). If you use `DailyBench` in your work, please cite it as:
+`DailyBench` costs about $5/day to run. If you are interested in sponsoring or contributing, please reach out! This project was developed by [Jacob Phillips](https://jacobdphillips.com/). If you use `DailyBench` in your work, please cite it as:
 
 ```bibtex
 @misc{phillips2025dailybench,
-    title={daily-bench: Track and visualize model performance over time, monitor for regression during peak load periods, and detect quality changes across LLM APIs},
+    title={daily-bench},
     author={Jacob Phillips},
     year={2025},
     howpublished={\url{https://github.com/jacobphillips99/daily-bench}}
