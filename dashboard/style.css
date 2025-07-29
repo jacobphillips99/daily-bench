@@ -274,7 +274,8 @@ section {
 
 /* Chart Containers - Enhanced Mobile Support */
 .overview-chart-container,
-.scatterplot-chart-container {
+.scatterplot-chart-container,
+.variance-chart-container {
     padding: 25px;
     width: 100%;
 }
@@ -283,12 +284,14 @@ section {
     border-radius: 0 0 12px 12px;
 }
 
-.scatterplot-chart-container {
+.scatterplot-chart-container,
+.variance-chart-container {
     border-top: 1px solid #e2e8f0;
 }
 
 .overview-chart-container h3,
-.scatterplot-chart-container h3 {
+.scatterplot-chart-container h3,
+.variance-chart-container h3 {
     margin-bottom: 20px;
     color: #2d3748;
     font-size: 1.2rem;
@@ -299,6 +302,7 @@ section {
 
 #overviewChart,
 #allModelsScatterChart,
+#allModelsVarianceChart,
 #timeSeriesChart,
 #individualScatterChart,
 #comparisonChart {
@@ -660,6 +664,7 @@ footer a:hover {
 
     .overview-chart-container,
     .scatterplot-chart-container,
+    .variance-chart-container,
     .dashboard,
     .chart-container,
     .scatterplot-container,
@@ -698,6 +703,7 @@ footer a:hover {
 
     #overviewChart,
     #allModelsScatterChart,
+    #allModelsVarianceChart,
     #timeSeriesChart,
     #individualScatterChart,
     #comparisonChart {
@@ -707,9 +713,16 @@ footer a:hover {
         max-width: 100% !important;
     }
 
+    /* Variance chart may need extra height on mobile due to multiple model legend */
+    #allModelsVarianceChart {
+        min-height: 350px !important;
+        height: 350px !important;
+    }
+
     /* Ensure chart divs take full width */
     #overviewChart > div,
     #allModelsScatterChart > div,
+    #allModelsVarianceChart > div,
     #timeSeriesChart > div,
     #individualScatterChart > div,
     #comparisonChart > div {
@@ -835,6 +848,7 @@ footer a:hover {
 
     #overviewChart,
     #allModelsScatterChart,
+    #allModelsVarianceChart,
     #timeSeriesChart,
     #individualScatterChart,
     #comparisonChart {
@@ -844,9 +858,16 @@ footer a:hover {
         max-width: 100% !important;
     }
 
+    /* Variance chart may need extra height on medium mobile due to multiple model legend */
+    #allModelsVarianceChart {
+        min-height: 400px !important;
+        height: 400px !important;
+    }
+
     /* Ensure chart divs take full width */
     #overviewChart > div,
     #allModelsScatterChart > div,
+    #allModelsVarianceChart > div,
     #timeSeriesChart > div,
     #individualScatterChart > div,
     #comparisonChart > div {
@@ -960,6 +981,7 @@ footer a:hover {
 
     #overviewChart,
     #allModelsScatterChart,
+    #allModelsVarianceChart,
     #timeSeriesChart,
     #individualScatterChart,
     #comparisonChart {

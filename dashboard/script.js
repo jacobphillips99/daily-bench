@@ -24,7 +24,9 @@ const allModelsElements = {
     providerSelect: document.getElementById('allModelsProviderSelect'),
     metricSelect: document.getElementById('allModelsMetricSelect'),
     scenarioSelect: document.getElementById('allModelsScenarioSelect'),
-    timePeriodSelect: document.getElementById('allModelsTimePeriodSelect')
+    timePeriodSelect: document.getElementById('allModelsTimePeriodSelect'),
+    varianceMetricSelect: document.getElementById('allModelsVarianceMetricSelect'),
+    varianceViewSelect: document.getElementById('allModelsVarianceViewSelect')
 };
 
 const individualElements = {
@@ -189,6 +191,8 @@ function setupEventListeners() {
     allModelsElements.metricSelect.addEventListener('change', updateAllModelsVisualization);
     allModelsElements.scenarioSelect.addEventListener('change', updateAllModelsVisualization);
     allModelsElements.timePeriodSelect.addEventListener('change', updateAllModelsScatterplot);
+    allModelsElements.varianceMetricSelect.addEventListener('change', updateVarianceChart);
+    allModelsElements.varianceViewSelect.addEventListener('change', updateVarianceChart);
 
     // Individual model section listeners
     individualElements.modelSelect.addEventListener('change', updateIndividualModelVisualization);
@@ -385,6 +389,7 @@ function updateAllModelsVisualization() {
 
     updateOverviewChart();
     updateAllModelsScatterplot();
+    updateVarianceChart();
 }
 
 function updateIndividualModelVisualization() {
@@ -1265,4 +1270,362 @@ function processDataForScatterplot(data, timePeriod) {
     }
 
     return processedData;
+}
+
+function updateVarianceChart() {
+    const chartDiv = document.getElementById('allModelsVarianceChart');
+
+    if (!isDataLoaded || allModelsData.length === 0) {
+        chartDiv.innerHTML = '<div class="empty-state"><h3>No data to display</h3><p>Select filters to view model consistency analysis.</p></div>';
+        return;
+    }
+
+    const varianceMetric = allModelsElements.varianceMetricSelect.value;
+    const viewType = allModelsElements.varianceViewSelect.value;
+    const mobile = isMobile();
+    const smallMobile = isSmallMobile();
+
+    let chartData = [];
+    let chartTitle = '';
+    let yAxisLabel = '';
+    let traces = [];
+
+    if (viewType === 'overall') {
+        chartData = calculateOverallVarianceData(allModelsData, varianceMetric);
+        chartTitle = `Overall Model Consistency (${getVarianceMetricLabel(varianceMetric)})`;
+        yAxisLabel = getVarianceMetricLabel(varianceMetric);
+
+        // Keep as bar chart for overall view
+        traces = [{
+            x: chartData.map(d => d.x),
+            y: chartData.map(d => d.y),
+            text: chartData.map(d => d.hoverText),
+            type: 'bar',
+            name: getVarianceMetricLabel(varianceMetric),
+            marker: {
+                color: chartData.map(d => d.color),
+                opacity: 0.8,
+                line: {
+                    color: 'rgba(0,0,0,0.2)',
+                    width: 1
+                }
+            }
+        }];
+    } else if (viewType === 'daily') {
+        chartData = calculateDailyVarianceData(allModelsData, varianceMetric);
+        chartTitle = `Daily Model Consistency Over Time (${getVarianceMetricLabel(varianceMetric)})`;
+        yAxisLabel = getVarianceMetricLabel(varianceMetric);
+
+        // Create line traces for each model
+        const colors = ['#667eea', '#48bb78', '#ed8936', '#e53e3e', '#9f7aea', '#38b2ac', '#d69e2e', '#805ad5', '#dd6b20'];
+        chartData.forEach((modelData, index) => {
+            const color = colors[index % colors.length];
+
+            // Truncate long model names for mobile legend
+            const displayName = mobile && modelData.model.length > 20 ?
+                modelData.model.substring(0, 17) + '...' : modelData.model;
+
+            traces.push({
+                x: modelData.timeSeries.map(d => d.date),
+                y: modelData.timeSeries.map(d => d.value),
+                text: modelData.timeSeries.map(d =>
+                    `${modelData.model}<br>Date: ${d.date.toLocaleDateString()}<br>${getVarianceMetricLabel(varianceMetric)}: ${d.value.toFixed(4)}<br>Data Points: ${d.dataPoints}${d.additionalInfo}`
+                ),
+                mode: 'lines+markers',
+                type: 'scatter',
+                name: displayName,
+                line: { color: color, width: mobile ? 2 : 3 },
+                marker: { color: color, size: mobile ? 4 : 6 }
+            });
+        });
+    } else if (viewType === 'weekly') {
+        chartData = calculateWeeklyVarianceData(allModelsData, varianceMetric);
+        chartTitle = `Weekly Model Consistency Over Time (${getVarianceMetricLabel(varianceMetric)})`;
+        yAxisLabel = getVarianceMetricLabel(varianceMetric);
+
+        // Create line traces for each model
+        const colors = ['#667eea', '#48bb78', '#ed8936', '#e53e3e', '#9f7aea', '#38b2ac', '#d69e2e', '#805ad5', '#dd6b20'];
+        chartData.forEach((modelData, index) => {
+            const color = colors[index % colors.length];
+
+            // Truncate long model names for mobile legend
+            const displayName = mobile && modelData.model.length > 20 ?
+                modelData.model.substring(0, 17) + '...' : modelData.model;
+
+            traces.push({
+                x: modelData.timeSeries.map(d => d.date),
+                y: modelData.timeSeries.map(d => d.value),
+                text: modelData.timeSeries.map(d => {
+                    const weekLabel = `${d.date.toLocaleDateString()} - ${d.endDate.toLocaleDateString()}`;
+                    return `${modelData.model}<br>Week: ${weekLabel}<br>${getVarianceMetricLabel(varianceMetric)}: ${d.value.toFixed(4)}<br>Data Points: ${d.dataPoints}${d.additionalInfo}`;
+                }),
+                mode: 'lines+markers',
+                type: 'scatter',
+                name: displayName,
+                line: { color: color, width: mobile ? 2 : 3 },
+                marker: { color: color, size: mobile ? 4 : 6 }
+            });
+        });
+    }
+
+    if (traces.length === 0) {
+        chartDiv.innerHTML = '<div class="empty-state"><h3>No data to display</h3><p>Not enough data points to calculate variance metrics. Each model needs multiple runs per day/week to show consistency patterns.</p></div>';
+        return;
+    }
+
+    const metricName = allModelsElements.metricSelect.value || 'Performance';
+    const scenarioInfo = allModelsElements.scenarioSelect.value === '__AVERAGE__' ?
+        'Avg across scenarios' :
+        allModelsElements.scenarioSelect.value || 'All scenarios';
+    const providerInfo = allModelsElements.providerSelect.value ?
+        ` (${allModelsElements.providerSelect.value} models)` : '';
+
+    // Adjust title for mobile
+    const fullTitle = `${chartTitle} - ${metricName}${providerInfo} (${scenarioInfo})`;
+    const mobileTitle = mobile && fullTitle.length > 60 ?
+        `${chartTitle.split(' (')[0]} - ${metricName}` : fullTitle;
+
+    const layout = {
+        title: {
+            text: mobileTitle,
+            x: 0.5,
+            font: { size: 16 }
+        },
+        xaxis: {
+            title: viewType === 'overall' ? 'Model' : 'Date',
+            tickangle: viewType === 'overall' ? -45 : 0,
+            type: viewType === 'overall' ? 'category' : 'date',
+            // For overall view, auto-adjust margins for long model names
+            automargin: viewType === 'overall'
+        },
+        yaxis: {
+            title: yAxisLabel
+        },
+        plot_bgcolor: '#f8f9fa',
+        paper_bgcolor: 'white',
+        showlegend: viewType !== 'overall', // Show legend for time series, hide for bar chart
+        // Increase bottom margin for overall view to accommodate long model names
+        margin: viewType === 'overall' ? {
+            t: 60,
+            r: 50,
+            b: 150, // Extra space for rotated model names
+            l: 80
+        } : undefined
+    };
+
+    // Additional mobile optimizations for multi-line charts
+    if (mobile && viewType !== 'overall' && traces.length > 6) {
+        // If too many lines on mobile, adjust legend positioning and chart height
+        layout.margin = {
+            t: smallMobile ? 40 : 50,
+            r: smallMobile ? 15 : 25,
+            b: smallMobile ? 140 : 130, // Extra space for wrapped legend
+            l: smallMobile ? 40 : 55
+        };
+    }
+
+    const mobileLayout = getMobileLayout(layout);
+    const config = getMobileConfig();
+
+    // Clear the div first to ensure proper redraw
+    chartDiv.innerHTML = '';
+
+    Plotly.newPlot(chartDiv, traces, mobileLayout, config).then(() => {
+        // Force resize after plot is ready
+        if (isMobile()) {
+            setTimeout(() => {
+                Plotly.Plots.resize(chartDiv);
+            }, 100);
+        }
+    });
+}
+
+function getVarianceMetricLabel(metric) {
+    switch (metric) {
+        case 'std': return 'Standard Deviation';
+        case 'variance': return 'Variance';
+        case 'range': return 'Range (Max - Min)';
+        default: return 'Variance Metric';
+    }
+}
+
+function calculateOverallVarianceData(data, metric) {
+    // Group by model
+    const modelGroups = d3.group(data, d => d.model);
+    const colors = ['#667eea', '#48bb78', '#ed8936', '#e53e3e', '#9f7aea', '#38b2ac', '#d69e2e', '#805ad5', '#dd6b20'];
+    let colorIndex = 0;
+
+    const chartData = [];
+
+    modelGroups.forEach((modelData, modelName) => {
+        const values = modelData.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
+
+        if (values.length > 1) { // Need at least 2 points for variance
+            let metricValue;
+            let additionalInfo = '';
+
+            switch (metric) {
+                case 'std':
+                    metricValue = d3.deviation(values);
+                    break;
+                case 'variance':
+                    metricValue = d3.variance(values);
+                    break;
+                case 'range':
+                    metricValue = d3.max(values) - d3.min(values);
+                    additionalInfo = `<br>Min: ${d3.min(values).toFixed(4)}<br>Max: ${d3.max(values).toFixed(4)}`;
+                    break;
+                default:
+                    metricValue = d3.deviation(values);
+            }
+
+            // Truncate long model names for display but keep full name in hover
+            const displayName = modelName.length > 25 ? modelName.substring(0, 22) + '...' : modelName;
+
+            chartData.push({
+                x: displayName,
+                y: metricValue,
+                color: colors[colorIndex % colors.length],
+                hoverText: `${modelName}<br>${getVarianceMetricLabel(metric)}: ${metricValue.toFixed(4)}<br>Data Points: ${values.length}${additionalInfo}`
+            });
+            colorIndex++;
+        }
+    });
+
+    // Sort by metric value descending
+    chartData.sort((a, b) => b.y - a.y);
+
+    return chartData;
+}
+
+function calculateDailyVarianceData(data, metric) {
+    // Group by model first, then by date
+    const modelGroups = d3.group(data, d => d.model);
+    const allModels = [];
+
+    modelGroups.forEach((modelData, modelName) => {
+        const dateGroups = d3.group(modelData, d => d.run_date ? d.run_date.toDateString() : 'Unknown');
+        const modelTimeSeries = [];
+
+        dateGroups.forEach((dayData, dateStr) => {
+            if (dateStr === 'Unknown') return;
+
+            // Get all runs for this model on this day
+            const values = dayData.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
+
+            // Only calculate variance if we have multiple data points for this model on this day
+            if (values.length > 1) {
+                let metricValue;
+                let additionalInfo = '';
+
+                switch (metric) {
+                    case 'std':
+                        metricValue = d3.deviation(values);
+                        break;
+                    case 'variance':
+                        metricValue = d3.variance(values);
+                        break;
+                    case 'range':
+                        metricValue = d3.max(values) - d3.min(values);
+                        additionalInfo = `<br>Min: ${d3.min(values).toFixed(4)}<br>Max: ${d3.max(values).toFixed(4)}`;
+                        break;
+                    default:
+                        metricValue = d3.deviation(values);
+                }
+
+                const date = new Date(dateStr);
+                modelTimeSeries.push({
+                    date: date,
+                    value: metricValue,
+                    dataPoints: values.length,
+                    additionalInfo: additionalInfo
+                });
+            }
+        });
+
+        // Only include models that have at least some variance data
+        if (modelTimeSeries.length > 0) {
+            // Sort by date
+            modelTimeSeries.sort((a, b) => a.date - b.date);
+
+            allModels.push({
+                model: modelName,
+                timeSeries: modelTimeSeries
+            });
+        }
+    });
+
+    return allModels;
+}
+
+function calculateWeeklyVarianceData(data, metric) {
+    // Group by model first, then by week
+    const modelGroups = d3.group(data, d => d.model);
+    const allModels = [];
+
+    modelGroups.forEach((modelData, modelName) => {
+        const weekGroups = d3.group(modelData, d => {
+            if (!d.run_date) return 'Unknown';
+            const date = new Date(d.run_date);
+            // Get the Monday of the week
+            const monday = new Date(date);
+            monday.setDate(date.getDate() - date.getDay() + 1);
+            return monday.toDateString();
+        });
+
+        const modelTimeSeries = [];
+
+        weekGroups.forEach((weekData, weekStart) => {
+            if (weekStart === 'Unknown') return;
+
+            // Get all runs for this model during this week
+            const values = weekData.map(d => d.mean).filter(v => v !== undefined && v !== null && !isNaN(v));
+
+            // Only calculate variance if we have multiple data points for this model during this week
+            if (values.length > 1) {
+                let metricValue;
+                let additionalInfo = '';
+
+                switch (metric) {
+                    case 'std':
+                        metricValue = d3.deviation(values);
+                        break;
+                    case 'variance':
+                        metricValue = d3.variance(values);
+                        break;
+                    case 'range':
+                        metricValue = d3.max(values) - d3.min(values);
+                        additionalInfo = `<br>Min: ${d3.min(values).toFixed(4)}<br>Max: ${d3.max(values).toFixed(4)}`;
+                        break;
+                    default:
+                        metricValue = d3.deviation(values);
+                }
+
+                const startDate = new Date(weekStart);
+                const endDate = new Date(startDate);
+                endDate.setDate(startDate.getDate() + 6);
+
+                modelTimeSeries.push({
+                    date: startDate,
+                    endDate: endDate,
+                    value: metricValue,
+                    dataPoints: values.length,
+                    additionalInfo: additionalInfo
+                });
+            }
+        });
+
+        // Only include models that have at least some variance data
+        if (modelTimeSeries.length > 0) {
+            // Sort by week start date
+            modelTimeSeries.sort((a, b) => a.date - b.date);
+
+            allModels.push({
+                model: modelName,
+                timeSeries: modelTimeSeries
+            });
+        }
+    });
+
+    return allModels;
 }

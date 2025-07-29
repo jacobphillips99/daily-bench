@@ -65,6 +65,25 @@
                 </div>
                 <div id="allModelsScatterChart"></div>
             </div>
+
+            <div class="variance-chart-container">
+                <h3>📊 Model Consistency Analysis</h3>
+                <div class="chart-controls">
+                    <label for="allModelsVarianceMetricSelect">Analysis Type:</label>
+                    <select id="allModelsVarianceMetricSelect">
+                        <option value="std">Standard Deviation</option>
+                        <option value="variance">Variance</option>
+                        <option value="range">Range (Max - Min)</option>
+                    </select>
+                    <label for="allModelsVarianceViewSelect">View:</label>
+                    <select id="allModelsVarianceViewSelect">
+                        <option value="overall">Overall Consistency</option>
+                        <option value="daily">Daily Consistency</option>
+                        <option value="weekly">Weekly Consistency</option>
+                    </select>
+                </div>
+                <div id="allModelsVarianceChart"></div>
+            </div>
         </section>
 
         <!-- Section 2: Individual Model Analysis -->
